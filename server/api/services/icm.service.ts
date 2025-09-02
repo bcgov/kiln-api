@@ -146,10 +146,12 @@ export class ICMService {
   ): Promise<PdfRenderResult> {
     if (response.ok) {
       const blob = await response.blob();
+      // Convert buffer to Buffer if needed
+      const pdfData = Buffer.isBuffer(blob) ? blob : Buffer.from(blob);
       L.info('PDF generated successfully');
       return {
         success: true,
-        data: blob,
+        data: pdfData,
       };
     } else {
       L.error('PDF generation failed:', defaultErrorMessage);
