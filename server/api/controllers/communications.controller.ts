@@ -116,10 +116,19 @@ export class CommunicationsController {
     try {
       const pdfTemplateId = req.params.pdfTemplateId;
 
+      // PDF template IDs must only be alphanumeric, underscore, or dash
+      const PDF_TEMPLATE_ID_REGEX = /^[A-Za-z0-9_-]+$/;
+
       if (!pdfTemplateId) {
         res
           .status(400)
           .json({ error: 'PDF template ID is required in URL path' });
+        return;
+      }
+      if (!PDF_TEMPLATE_ID_REGEX.test(pdfTemplateId)) {
+        res
+          .status(400)
+          .json({ error: 'Invalid PDF template ID format' });
         return;
       }
 
