@@ -10,12 +10,14 @@ describe('Communications Controller', () => {
   let unlockICMDataStub: sinon.SinonStub;
   let loadSavedJsonStub: sinon.SinonStub;
   let generateFormStub: sinon.SinonStub;
+  let pdfRenderStub: sinon.SinonStub;
 
   beforeEach(() => {
     loadICMDataStub = sinon.stub(ICMService, 'loadICMData');
     unlockICMDataStub = sinon.stub(ICMService, 'unlockICMData');
     loadSavedJsonStub = sinon.stub(ICMService, 'loadSavedJson');
     generateFormStub = sinon.stub(ICMService, 'generateForm');
+    pdfRenderStub = sinon.stub(ICMService, 'pdfRender');
   });
 
   afterEach(() => {
@@ -639,6 +641,263 @@ describe('Communications Controller', () => {
         version: '2.1',
         includeMetadata: true,
         userId: 'user-789',
+      });
+    });
+  });
+
+  describe('pdfRender endpoint', () => {
+    it('should successfully generate PDF with template ID in URL', async () => {
+      const pdfTemplateId = 'invoice-template-123';
+      const formData = {
+        customerName: 'John Doe',
+        amount: 1500,
+        invoiceDate: '2024-01-15',
+      };
+
+      const mockPdfBuffer = Buffer.from('PDF binary content here');
+      pdfRenderStub.resolves({
+        success: true,
+        data: mockPdfBuffer,
+      });
+
+      const response = await request(Server)
+        .post(`/api/pdfRender/${pdfTemplateId}`)
+        .send(formData)
+        .expect(200);
+
+      // Debug: Check if stub was called
+      expect(pdfRenderStub.calledOnce).to.be.true;
+      expect(response.headers['content-type']).to.equal('application/pdf');
+      expect(response.body).to.deep.equal(mockPdfBuffer);
+
+      const serviceData = pdfRenderStub.getCall(0).args[0];
+      expect(serviceData).to.deep.equal({
+        pdfTemplateId: 'invoice-template-123',
+        customerName: 'John Doe',
+        amount: 1500,
+        invoiceDate: '2024-01-15',
+      });
+    });
+
+    it('should return 404 when PDF template ID is missing from URL', async () => {
+      const formData = { data: 'test' };
+
+      await request(Server)
+        .post('/api/pdfRender/')
+        .send(formData)
+        .expect(404); // Express route not found
+
+      expect(pdfRenderStub.called).to.be.false;
+    });
+
+    it('should handle empty form data correctly', async () => {
+      const pdfTemplateId = 'empty-template';
+
+      const mockPdfBuffer = Buffer.from('Empty template PDF');
+      pdfRenderStub.resolves({
+        success: true,
+        data: mockPdfBuffer,
+      });
+
+      const response = await request(Server)
+        .post(`/api/pdfRender/${pdfTemplateId}`)
+        .send({})
+        .expect('Content-Type', 'application/pdf')
+        .expect(200);
+
+      expect(response.body).to.deep.equal(mockPdfBuffer);
+
+      const serviceData = pdfRenderStub.getCall(0).args[0];
+      expect(serviceData).to.deep.equal({
+        pdfTemplateId: 'empty-template',
+      });
+    });
+
+    it('should handle ICM service error responses', async () => {
+      const pdfTemplateId = 'invalid-template';
+      const formData = { data: 'test' };
+
+      pdfRenderStub.resolves({
+        success: false,
+        error: 'Template not found',
+        status: 404,
+      });
+
+      const response = await request(Server)
+        .post(`/api/pdfRender/${pdfTemplateId}`)
+        .send(formData)
+        .expect('Content-Type', /json/)
+        .expect(404);
+
+      expect(response.body).to.deep.equal({
+        error: 'Template not found',
+      });
+    });
+
+    it('should handle ICM service error with default status 500', async () => {
+      const pdfTemplateId = 'error-template';
+      const formData = { data: 'test' };
+
+      pdfRenderStub.resolves({
+        success: false,
+        error: 'Internal PDF generation error',
+      });
+
+      const response = await request(Server)
+        .post(`/api/pdfRender/${pdfTemplateId}`)
+        .send(formData)
+        .expect('Content-Type', /json/)
+        .expect(500);
+
+      expect(response.body).to.deep.equal({
+        error: 'Internal PDF generation error',
+      });
+    });
+
+    it('should handle service success but missing data', async () => {
+      const pdfTemplateId = 'template-no-data';
+      const formData = { data: 'test' };
+
+      pdfRenderStub.resolves({
+        success: true,
+        data: null,
+      });
+
+      const response = await request(Server)
+        .post(`/api/pdfRender/${pdfTemplateId}`)
+        .send(formData)
+        .expect('Content-Type', /json/)
+        .expect(500);
+
+      expect(response.body).to.have.property('error');
+    });
+
+    it('should pass through complex form data structures', async () => {
+      const pdfTemplateId = 'complex-report';
+      const formData = {
+        report: {
+          title: 'Annual Report',
+          sections: [
+            { name: 'Summary', content: 'Executive summary' },
+            { name: 'Details', content: 'Detailed analysis' },
+          ],
+        },
+        metadata: {
+          author: 'John Smith',
+          department: 'Finance',
+          tags: ['annual', 'financial', '2024'],
+        },
+        settings: {
+          includeCharts: true,
+          pageNumbers: true,
+        },
+      };
+
+      const mockPdfBuffer = Buffer.from('Complex report PDF');
+      pdfRenderStub.resolves({
+        success: true,
+        data: mockPdfBuffer,
+      });
+
+      await request(Server)
+        .post(`/api/pdfRender/${pdfTemplateId}`)
+        .send(formData)
+        .expect('Content-Type', 'application/pdf')
+        .expect(200);
+
+      const serviceData = pdfRenderStub.getCall(0).args[0];
+      expect(serviceData).to.deep.equal({
+        pdfTemplateId: 'complex-report',
+        report: {
+          title: 'Annual Report',
+          sections: [
+            { name: 'Summary', content: 'Executive summary' },
+            { name: 'Details', content: 'Detailed analysis' },
+          ],
+        },
+        metadata: {
+          author: 'John Smith',
+          department: 'Finance',
+          tags: ['annual', 'financial', '2024'],
+        },
+        settings: {
+          includeCharts: true,
+          pageNumbers: true,
+        },
+      });
+    });
+
+    it('should handle special characters in template ID', async () => {
+      const pdfTemplateId = 'template_with-special.chars@123';
+      const formData = { field: 'value' };
+
+      const mockPdfBuffer = Buffer.from('PDF with special template ID');
+      pdfRenderStub.resolves({
+        success: true,
+        data: mockPdfBuffer,
+      });
+
+      await request(Server)
+        .post(`/api/pdfRender/${pdfTemplateId}`)
+        .send(formData)
+        .expect('Content-Type', 'application/pdf')
+        .expect(200);
+
+      const serviceData = pdfRenderStub.getCall(0).args[0];
+      expect(serviceData.pdfTemplateId).to.equal('template_with-special.chars@123');
+    });
+
+    it('should handle large PDF responses', async () => {
+      const pdfTemplateId = 'large-document';
+      const formData = { content: 'Large document content' };
+
+      const largePdfBuffer = Buffer.alloc(2 * 1024 * 1024, 'L'); // 2MB PDF
+      pdfRenderStub.resolves({
+        success: true,
+        data: largePdfBuffer,
+      });
+
+      const response = await request(Server)
+        .post(`/api/pdfRender/${pdfTemplateId}`)
+        .send(formData)
+        .expect('Content-Type', 'application/pdf')
+        .expect(200);
+
+      expect(response.body.length).to.equal(2 * 1024 * 1024);
+      expect(response.body.equals(largePdfBuffer)).to.be.true;
+    });
+
+    it('should handle ICMService exceptions in try-catch', async () => {
+      const pdfTemplateId = 'exception-template';
+      const formData = { data: 'test' };
+
+      pdfRenderStub.rejects(new Error('Service unavailable'));
+
+      const response = await request(Server)
+        .post(`/api/pdfRender/${pdfTemplateId}`)
+        .send(formData)
+        .expect('Content-Type', /json/)
+        .expect(500);
+
+      expect(response.body).to.deep.equal({
+        error: 'Service unavailable',
+      });
+    });
+
+    it('should handle non-Error exceptions in try-catch', async () => {
+      const pdfTemplateId = 'unknown-error-template';
+      const formData = { data: 'test' };
+
+      pdfRenderStub.rejects('Unknown error occurred');
+
+      const response = await request(Server)
+        .post(`/api/pdfRender/${pdfTemplateId}`)
+        .send(formData)
+        .expect('Content-Type', /json/)
+        .expect(500);
+
+      expect(response.body).to.deep.equal({
+        error: 'Internal server error',
       });
     });
   });
