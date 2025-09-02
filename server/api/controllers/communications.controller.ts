@@ -116,19 +116,10 @@ export class CommunicationsController {
     try {
       const pdfTemplateId = req.params.pdfTemplateId;
 
-      // PDF template IDs must only be alphanumeric, underscore, or dash
-      const PDF_TEMPLATE_ID_REGEX = /^[A-Za-z0-9_-]+$/;
-
       if (!pdfTemplateId) {
         res
           .status(400)
           .json({ error: 'PDF template ID is required in URL path' });
-        return;
-      }
-      if (!PDF_TEMPLATE_ID_REGEX.test(pdfTemplateId)) {
-        res
-          .status(400)
-          .json({ error: 'Invalid PDF template ID format' });
         return;
       }
 
@@ -143,7 +134,9 @@ export class CommunicationsController {
         res.setHeader('Content-Type', 'application/pdf');
         res.status(200).send(result.data);
       } else if (result.success && !result.data) {
-        res.status(500).json({ error: 'PDF generation succeeded but no data returned' });
+        res
+          .status(500)
+          .json({ error: 'PDF generation succeeded but no data returned' });
       } else {
         res.status(result.status || 500).json({ error: result.error });
       }

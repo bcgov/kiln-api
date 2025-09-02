@@ -223,8 +223,7 @@ export class ICMClient {
     pdfTemplateId: string
   ): Promise<ICMBlobResponse> {
     try {
-      // PDF template IDs must only be alphanumeric, underscore, or dash
-      const PDF_TEMPLATE_ID_REGEX = /^[A-Za-z0-9_-]+$/;
+      const PDF_TEMPLATE_ID_REGEX = /^[A-Za-z0-9_\\.@-]+$/;
 
       if (!PDF_TEMPLATE_ID_REGEX.test(pdfTemplateId)) {
         throw new Error('Invalid PDF template ID format');
