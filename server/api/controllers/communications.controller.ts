@@ -112,8 +112,42 @@ export class CommunicationsController {
     }
   }
 
-  pdfRender(req: Request, res: Response): void {
-    res.json({ endpoint: 'pdfRender', payload: req.body });
+  async pdfRender(req: Request, res: Response): Promise<void> {
+    try {
+      const pdfTemplateId = req.params.pdfTemplateId;
+
+      if (!pdfTemplateId) {
+        res
+          .status(400)
+          .json({ error: 'PDF template ID is required in URL path' });
+        return;
+      }
+
+      const formData = req.body;
+
+      const result = await ICMService.pdfRender({
+        pdfTemplateId,
+        ...formData,
+      });
+
+      if (result.success && result.data) {
+        res.setHeader('Content-Type', 'application/pdf');
+        res.status(200).send(result.data);
+      } else if (result.success && !result.data) {
+        res.status(500).json({ error: 'PDF generation succeeded but no data returned' });
+      } else {
+        res.status(result.status || 500).json({ error: result.error });
+      }
+    } catch (error) {
+      console.error('PDF render error:', error);
+      let errorMessage = 'Internal server error';
+      if (error instanceof Error && error.message) {
+        errorMessage = error.message;
+      }
+      res.status(500).json({
+        error: errorMessage,
+      });
+    }
   }
 
   generatePDFFromJson(req: Request, res: Response): void {
