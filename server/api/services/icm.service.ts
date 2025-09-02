@@ -342,6 +342,15 @@ export class ICMService {
         };
       }
 
+      const PDF_TEMPLATE_ID_REGEX = /^[A-Za-z0-9_\\.@-]+$/;
+      if (!PDF_TEMPLATE_ID_REGEX.test(pdfTemplateId)) {
+        return {
+          success: false,
+          error: 'Invalid PDF template ID format',
+          status: 400,
+        };
+      }
+
       const payload: PdfRenderPayload = {
         ...formData,
       };

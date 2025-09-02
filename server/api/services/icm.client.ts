@@ -223,12 +223,6 @@ export class ICMClient {
     pdfTemplateId: string
   ): Promise<ICMBlobResponse> {
     try {
-      const PDF_TEMPLATE_ID_REGEX = /^[A-Za-z0-9_\\.@-]+$/;
-
-      if (!PDF_TEMPLATE_ID_REGEX.test(pdfTemplateId)) {
-        throw new Error('Invalid PDF template ID format');
-      }
-
       const baseUrl = process.env.COMM_API_PDFTEMPLATE_ENDPOINT_URL;
 
       if (!baseUrl) {

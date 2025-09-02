@@ -917,7 +917,7 @@ describe('ICMService', () => {
 
     it('should handle special characters in template ID', async () => {
       const testData = {
-        pdfTemplateId: 'template-with-special-chars_123!@#',
+        pdfTemplateId: 'template_with-special.chars@123',
         formData: { field: 'value' },
       };
 
@@ -935,7 +935,7 @@ describe('ICMService', () => {
       expect(result.data).to.deep.equal(mockPdfBuffer);
 
       const [, templateId] = icmClientStub.pdfRender.getCall(0).args;
-      expect(templateId).to.equal('template-with-special-chars_123!@#');
+      expect(templateId).to.equal('template_with-special.chars@123');
     });
   });
 });
