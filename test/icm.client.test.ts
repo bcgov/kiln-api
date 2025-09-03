@@ -384,4 +384,239 @@ describe('ICMClient', () => {
       expect(jsonData).to.deep.equal(mockErrorResponse);
     });
   });
+
+  describe('pdfRender', () => {
+    it('should throw error when COMM_API_PDFTEMPLATE_ENDPOINT_URL is not set', async () => {
+      delete process.env.COMM_API_PDFTEMPLATE_ENDPOINT_URL;
+
+      try {
+        await icmClient.pdfRender({ test: 'data' }, 'template-123');
+        expect.fail('Should have thrown an error');
+      } catch (error) {
+        expect(error.message).to.equal(
+          'COMM_API_PDFTEMPLATE_ENDPOINT_URL environment variable is required'
+        );
+      }
+    });
+
+    it('should make successful API call and return proper response', async () => {
+      // Arrange
+      process.env.COMM_API_PDFTEMPLATE_ENDPOINT_URL =
+        'https://api.example.com/pdf';
+      process.env.COMM_API_TIMEOUT = '5000';
+
+      const mockPayload = { formData: { field1: 'value1', field2: 'value2' } };
+      const pdfTemplateId = 'template-123';
+      const mockPdfBuffer = Buffer.from('PDF content here');
+
+      axiosPostStub.resolves({
+        status: 200,
+        data: mockPdfBuffer,
+      });
+
+      // Act
+      const result = await icmClient.pdfRender(mockPayload, pdfTemplateId);
+
+      // Assert
+      expect(result.ok).to.be.true;
+      expect(result.status).to.equal(200);
+
+      const blobData = await result.blob();
+      expect(blobData).to.deep.equal(mockPdfBuffer);
+
+      // Verify axios was called with correct parameters
+      expect(axiosPostStub.calledOnce).to.be.true;
+      expect(
+        axiosPostStub.calledWith('https://api.example.com/pdf/template-123', mockPayload, {
+          headers: { 'Content-Type': 'application/json' },
+          responseType: 'arraybuffer',
+          timeout: 5000,
+        })
+      ).to.be.true;
+    });
+
+    it('should construct URL correctly with pdfTemplateId', async () => {
+      // Arrange
+      process.env.COMM_API_PDFTEMPLATE_ENDPOINT_URL =
+        'https://api.example.com/pdf-service';
+      
+      const mockPayload = { data: 'test' };
+      const pdfTemplateId = 'my-template-456';
+
+      axiosPostStub.resolves({
+        status: 200,
+        data: Buffer.from('PDF data'),
+      });
+
+      // Act
+      await icmClient.pdfRender(mockPayload, pdfTemplateId);
+
+      // Assert
+      expect(axiosPostStub.calledOnce).to.be.true;
+      const [url] = axiosPostStub.getCall(0).args;
+      expect(url).to.equal('https://api.example.com/pdf-service/my-template-456');
+    });
+
+    it('should use default timeout when COMM_API_TIMEOUT is not set', async () => {
+      // Arrange
+      process.env.COMM_API_PDFTEMPLATE_ENDPOINT_URL =
+        'https://api.example.com/pdf';
+      delete process.env.COMM_API_TIMEOUT;
+
+      const mockPayload = { data: 'test' };
+      const pdfTemplateId = 'template-789';
+
+      axiosPostStub.resolves({
+        status: 200,
+        data: Buffer.from('PDF content'),
+      });
+
+      // Act
+      await icmClient.pdfRender(mockPayload, pdfTemplateId);
+
+      // Assert
+      expect(axiosPostStub.calledOnce).to.be.true;
+      const [, , config] = axiosPostStub.getCall(0).args;
+      expect(config.timeout).to.equal(30000);
+    });
+
+    it('should handle axios error responses properly', async () => {
+      // Arrange
+      process.env.COMM_API_PDFTEMPLATE_ENDPOINT_URL =
+        'https://api.example.com/pdf';
+
+      const mockPayload = { data: 'test' };
+      const pdfTemplateId = 'invalid-template';
+      const mockErrorResponse = {
+        error: 'Template not found',
+        message: 'PDF template does not exist',
+      };
+
+      const axiosError = {
+        response: {
+          status: 404,
+          data: mockErrorResponse,
+        },
+      };
+
+      axiosPostStub.rejects(axiosError);
+
+      // Act
+      const result = await icmClient.pdfRender(mockPayload, pdfTemplateId);
+
+      // Assert
+      expect(result.ok).to.be.false;
+      expect(result.status).to.equal(404);
+
+      // For blob response, error should return empty buffer
+      const blobData = await result.blob();
+      expect(blobData).to.be.instanceOf(Buffer);
+      expect(blobData.length).to.equal(0);
+    });
+
+    it('should handle axios error responses with default status 500', async () => {
+      // Arrange
+      process.env.COMM_API_PDFTEMPLATE_ENDPOINT_URL =
+        'https://api.example.com/pdf';
+
+      const mockPayload = { data: 'test' };
+      const pdfTemplateId = 'template-error';
+
+      const axiosError = {
+        response: {
+          // Missing status, should default to 500
+          data: { error: 'Internal server error' },
+        },
+      };
+
+      axiosPostStub.rejects(axiosError);
+
+      // Act
+      const result = await icmClient.pdfRender(mockPayload, pdfTemplateId);
+
+      // Assert
+      expect(result.ok).to.be.false;
+      expect(result.status).to.equal(500);
+
+      const blobData = await result.blob();
+      expect(blobData).to.be.instanceOf(Buffer);
+      expect(blobData.length).to.equal(0);
+    });
+
+    it('should handle non-axios errors by rethrowing', async () => {
+      // Arrange
+      process.env.COMM_API_PDFTEMPLATE_ENDPOINT_URL =
+        'https://api.example.com/pdf';
+
+      const mockPayload = { data: 'test' };
+      const pdfTemplateId = 'template-123';
+      const networkError = new Error('Network connection failed');
+
+      axiosPostStub.rejects(networkError);
+
+      // Act & Assert
+      try {
+        await icmClient.pdfRender(mockPayload, pdfTemplateId);
+        expect.fail('Should have thrown the network error');
+      } catch (error) {
+        expect(error.message).to.equal('Network connection failed');
+      }
+    });
+
+    it('should set correct headers and response type for PDF generation', async () => {
+      // Arrange
+      process.env.COMM_API_PDFTEMPLATE_ENDPOINT_URL =
+        'https://api.example.com/pdf';
+
+      const mockPayload = { formData: { name: 'John Doe' } };
+      const pdfTemplateId = 'invoice-template';
+
+      axiosPostStub.resolves({
+        status: 201,
+        data: Buffer.from('Generated PDF content'),
+      });
+
+      // Act
+      const result = await icmClient.pdfRender(mockPayload, pdfTemplateId);
+
+      // Assert
+      expect(result.ok).to.be.true;
+      expect(result.status).to.equal(201);
+
+      // Verify correct headers and responseType were set
+      expect(axiosPostStub.calledOnce).to.be.true;
+      const [, , config] = axiosPostStub.getCall(0).args;
+      expect(config.headers).to.deep.equal({
+        'Content-Type': 'application/json',
+      });
+      expect(config.responseType).to.equal('arraybuffer');
+    });
+
+    it('should handle large PDF responses correctly', async () => {
+      // Arrange
+      process.env.COMM_API_PDFTEMPLATE_ENDPOINT_URL =
+        'https://api.example.com/pdf';
+
+      const mockPayload = { data: 'large document data' };
+      const pdfTemplateId = 'large-template';
+      const largePdfBuffer = Buffer.alloc(1024 * 1024, 'A'); // 1MB buffer
+
+      axiosPostStub.resolves({
+        status: 200,
+        data: largePdfBuffer,
+      });
+
+      // Act
+      const result = await icmClient.pdfRender(mockPayload, pdfTemplateId);
+
+      // Assert
+      expect(result.ok).to.be.true;
+      expect(result.status).to.equal(200);
+
+      const blobData = await result.blob();
+      expect(blobData).to.be.instanceOf(Buffer);
+      expect(blobData.length).to.equal(1024 * 1024);
+      expect(blobData.equals(largePdfBuffer)).to.be.true;
+    });
+  });
 });

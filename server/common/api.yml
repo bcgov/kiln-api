@@ -199,21 +199,33 @@ paths:
         200:
           description: JSON data loaded successfully
 
-  /pdfRender:
+  /pdfRender/{pdfTemplateId}:
     post:
       tags:
         - Communications Layer
         - Kiln Interface
-      description: Render a PDF from form data
+      description: Render a PDF from form data using a specific template
       parameters:
+        - in: path
+          name: pdfTemplateId
+          type: string
+          required: true
+          description: The ID of the PDF template to use
         - in: body
           name: pdfData
-          required: true
+          required: false
           schema:
             type: object
+      produces:
+        - application/pdf
+        - application/json
       responses:
         200:
           description: PDF rendered successfully
+        400:
+          description: Bad request - missing or invalid parameters
+        500:
+          description: Internal server error
 
   /generatePDFFromJson:
     post:

@@ -68,9 +68,25 @@ interface GenerateFormRequest {
   [key: string]: any;
 }
 
+interface PdfRenderPayload {
+  [key: string]: any;
+}
+
+interface PdfRenderRequest {
+  pdfTemplateId: string;
+  [key: string]: any;
+}
+
 interface ICMDataResult {
   success: boolean;
   data?: any;
+  error?: string;
+  status?: number;
+}
+
+interface PdfRenderResult {
+  success: boolean;
+  data?: Buffer; // PDF binary data
   error?: string;
   status?: number;
 }
@@ -119,6 +135,29 @@ export class ICMService {
       return {
         success: false,
         error: errorMessage,
+        status: response.status,
+      };
+    }
+  }
+
+  private async handleBlobResponse(
+    response: any,
+    defaultErrorMessage: string
+  ): Promise<PdfRenderResult> {
+    if (response.ok) {
+      const blob = await response.blob();
+      // Convert buffer to Buffer if needed
+      const pdfData = Buffer.isBuffer(blob) ? blob : Buffer.from(blob);
+      L.info('PDF generated successfully');
+      return {
+        success: true,
+        data: pdfData,
+      };
+    } else {
+      L.error('PDF generation failed:', defaultErrorMessage);
+      return {
+        success: false,
+        error: defaultErrorMessage,
         status: response.status,
       };
     }
@@ -288,6 +327,44 @@ export class ICMService {
       );
     } catch (error) {
       return this.handleError(error, 'Failed to generate form');
+    }
+  }
+
+  async pdfRender(data: PdfRenderRequest): Promise<PdfRenderResult> {
+    try {
+      const { pdfTemplateId, ...formData } = data;
+
+      if (!pdfTemplateId) {
+        return {
+          success: false,
+          error: 'Missing required field: pdfTemplateId',
+          status: 400,
+        };
+      }
+
+      const PDF_TEMPLATE_ID_REGEX = /^[A-Za-z0-9_\\.@-]+$/;
+      if (!PDF_TEMPLATE_ID_REGEX.test(pdfTemplateId)) {
+        return {
+          success: false,
+          error: 'Invalid PDF template ID format',
+          status: 400,
+        };
+      }
+
+      const payload: PdfRenderPayload = {
+        ...formData,
+      };
+
+      const response = await this.icmClient.pdfRender(payload, pdfTemplateId);
+      return this.handleBlobResponse(
+        response,
+        'Error generating PDF. Please try again.'
+      );
+    } catch (error) {
+      return this.handleError(
+        error,
+        'Failed to generate PDF'
+      ) as PdfRenderResult;
     }
   }
 }

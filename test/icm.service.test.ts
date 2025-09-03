@@ -719,4 +719,223 @@ describe('ICMService', () => {
       expect(originalServer).to.equal('https://server.example.com');
     });
   });
+
+  describe('pdfRender', () => {
+    it('should successfully generate PDF with valid template ID', async () => {
+      const testData = {
+        pdfTemplateId: 'template-123',
+        formData: { name: 'John Doe', email: 'john@example.com' },
+        metadata: { version: '1.0' },
+      };
+
+      const mockPdfBuffer = Buffer.from('PDF binary content here');
+      const mockResponse = {
+        ok: true,
+        blob: sinon.stub().resolves(mockPdfBuffer),
+      };
+
+      icmClientStub.pdfRender.resolves(mockResponse as any);
+
+      const result = await icmService.pdfRender(testData);
+
+      expect(result.success).to.be.true;
+      expect(result.data).to.deep.equal(mockPdfBuffer);
+      expect(icmClientStub.pdfRender.calledOnce).to.be.true;
+
+      const [calledPayload, templateId] = icmClientStub.pdfRender.getCall(0).args;
+      expect(calledPayload).to.deep.equal({
+        formData: { name: 'John Doe', email: 'john@example.com' },
+        metadata: { version: '1.0' },
+      });
+      expect(templateId).to.equal('template-123');
+    });
+
+    it('should return error when pdfTemplateId is missing', async () => {
+      const testData = {
+        formData: { name: 'John Doe' },
+      };
+
+      const result = await icmService.pdfRender(testData as any);
+
+      expect(result.success).to.be.false;
+      expect(result.error).to.equal('Missing required field: pdfTemplateId');
+      expect(result.status).to.equal(400);
+      expect(icmClientStub.pdfRender.called).to.be.false;
+    });
+
+    it('should return error when pdfTemplateId is empty string', async () => {
+      const testData = {
+        pdfTemplateId: '',
+        formData: { name: 'John Doe' },
+      };
+
+      const result = await icmService.pdfRender(testData);
+
+      expect(result.success).to.be.false;
+      expect(result.error).to.equal('Missing required field: pdfTemplateId');
+      expect(result.status).to.equal(400);
+      expect(icmClientStub.pdfRender.called).to.be.false;
+    });
+
+    it('should handle ICM client API error responses', async () => {
+      const testData = {
+        pdfTemplateId: 'invalid-template',
+        formData: { data: 'test' },
+      };
+
+      const mockResponse = {
+        ok: false,
+        status: 404,
+        blob: sinon.stub().resolves(Buffer.from([])),
+      };
+
+      icmClientStub.pdfRender.resolves(mockResponse as any);
+
+      const result = await icmService.pdfRender(testData);
+
+      expect(result.success).to.be.false;
+      expect(result.error).to.equal('Error generating PDF. Please try again.');
+      expect(result.status).to.equal(404);
+    });
+
+    it('should handle ICM client exceptions', async () => {
+      const testData = {
+        pdfTemplateId: 'template-123',
+        formData: { data: 'test' },
+      };
+
+      const error = new Error('Network connection failed');
+      icmClientStub.pdfRender.rejects(error);
+
+      const result = await icmService.pdfRender(testData);
+
+      expect(result.success).to.be.false;
+      expect(result.error).to.equal('Failed to generate PDF: Network connection failed');
+      expect(result.status).to.equal(500);
+    });
+
+    it('should handle unknown errors', async () => {
+      const testData = {
+        pdfTemplateId: 'template-123',
+        formData: { data: 'test' },
+      };
+
+      icmClientStub.pdfRender.rejects(new Error('Template service unavailable'));
+
+      const result = await icmService.pdfRender(testData);
+
+      expect(result.success).to.be.false;
+      expect(result.error).to.equal('Failed to generate PDF: Template service unavailable');
+      expect(result.status).to.equal(500);
+    });
+
+    it('should pass through all form data parameters to ICM client', async () => {
+      const testData = {
+        pdfTemplateId: 'invoice-template',
+        customerName: 'Jane Smith',
+        invoiceNumber: 'INV-001',
+        items: [
+          { name: 'Product A', price: 100 },
+          { name: 'Product B', price: 200 },
+        ],
+        totalAmount: 300,
+        dueDate: '2024-01-15',
+      };
+
+      const mockPdfBuffer = Buffer.from('Generated invoice PDF');
+      const mockResponse = {
+        ok: true,
+        blob: sinon.stub().resolves(mockPdfBuffer),
+      };
+
+      icmClientStub.pdfRender.resolves(mockResponse as any);
+
+      const result = await icmService.pdfRender(testData);
+
+      expect(result.success).to.be.true;
+      expect(icmClientStub.pdfRender.calledOnce).to.be.true;
+
+      const [calledPayload, templateId] = icmClientStub.pdfRender.getCall(0).args;
+      expect(calledPayload).to.deep.equal({
+        customerName: 'Jane Smith',
+        invoiceNumber: 'INV-001',
+        items: [
+          { name: 'Product A', price: 100 },
+          { name: 'Product B', price: 200 },
+        ],
+        totalAmount: 300,
+        dueDate: '2024-01-15',
+      });
+      expect(templateId).to.equal('invoice-template');
+    });
+
+    it('should handle large PDF responses correctly', async () => {
+      const testData = {
+        pdfTemplateId: 'large-report-template',
+        reportData: { records: new Array(1000).fill({ id: 1, data: 'test' }) },
+      };
+
+      const largePdfBuffer = Buffer.alloc(5 * 1024 * 1024, 'P'); // 5MB PDF
+      const mockResponse = {
+        ok: true,
+        blob: sinon.stub().resolves(largePdfBuffer),
+      };
+
+      icmClientStub.pdfRender.resolves(mockResponse as any);
+
+      const result = await icmService.pdfRender(testData);
+
+      expect(result.success).to.be.true;
+      expect(result.data).to.be.instanceOf(Buffer);
+      expect(result.data?.length).to.equal(5 * 1024 * 1024);
+      expect(result.data?.equals(largePdfBuffer)).to.be.true;
+    });
+
+    it('should handle empty form data correctly', async () => {
+      const testData = {
+        pdfTemplateId: 'blank-template',
+      };
+
+      const mockPdfBuffer = Buffer.from('Empty PDF template');
+      const mockResponse = {
+        ok: true,
+        blob: sinon.stub().resolves(mockPdfBuffer),
+      };
+
+      icmClientStub.pdfRender.resolves(mockResponse as any);
+
+      const result = await icmService.pdfRender(testData);
+
+      expect(result.success).to.be.true;
+      expect(result.data).to.deep.equal(mockPdfBuffer);
+      expect(icmClientStub.pdfRender.calledOnce).to.be.true;
+
+      const [calledPayload, templateId] = icmClientStub.pdfRender.getCall(0).args;
+      expect(calledPayload).to.deep.equal({});
+      expect(templateId).to.equal('blank-template');
+    });
+
+    it('should handle special characters in template ID', async () => {
+      const testData = {
+        pdfTemplateId: 'template_with-special.chars@123',
+        formData: { field: 'value' },
+      };
+
+      const mockPdfBuffer = Buffer.from('PDF with special template');
+      const mockResponse = {
+        ok: true,
+        blob: sinon.stub().resolves(mockPdfBuffer),
+      };
+
+      icmClientStub.pdfRender.resolves(mockResponse as any);
+
+      const result = await icmService.pdfRender(testData);
+
+      expect(result.success).to.be.true;
+      expect(result.data).to.deep.equal(mockPdfBuffer);
+
+      const [, templateId] = icmClientStub.pdfRender.getCall(0).args;
+      expect(templateId).to.equal('template_with-special.chars@123');
+    });
+  });
 });

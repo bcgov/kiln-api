@@ -30,7 +30,7 @@ router.post('/clearICMLockedFlag', (req, res) =>
 router.post('/loadSavedJson', (req, res) =>
   CommunicationsController.loadSavedJson(req, res)
 );
-router.post('/pdfRender', (req, res) =>
+router.post('/pdfRender/:pdfTemplateId', (req, res) =>
   CommunicationsController.pdfRender(req, res)
 );
 router.post('/generatePDFFromJson', (req, res) =>
