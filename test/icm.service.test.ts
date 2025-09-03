@@ -719,4 +719,75 @@ describe('ICMService', () => {
       expect(originalServer).to.equal('https://server.example.com');
     });
   });
+
+  describe('generatePortalForm (service)', () => {
+    it('should use token when provided (over username)', async () => {
+      const testData = {
+        username: 'user1',
+        formType: 'portal',
+        templateId: 't-1',
+        originalServer: 'https://server.example.com',
+        extra: 'ok',
+      };
+
+      const mockResponse = { ok: true, json: sinon.stub().resolves({ id: 'p-123' }) };
+      icmClientStub.generatePortalForm.resolves(mockResponse as any);
+
+      const result = await icmService.generatePortalForm(testData, 'TOKEN-123');
+
+      expect(result.success).to.be.true;
+      expect(result.data).to.deep.equal({ id: 'p-123' });
+
+      const [calledPayload, originalServer] =
+        icmClientStub.generatePortalForm.getCall(0).args;
+
+      expect(calledPayload).to.deep.equal({
+        formType: 'portal',
+        templateId: 't-1',
+        extra: 'ok',
+        token: 'TOKEN-123',
+      });
+      expect(originalServer).to.equal('https://server.example.com');
+    });
+
+    it('should use username when token not provided', async () => {
+      const testData = {
+        username: 'jane',
+        formVersionRefId: 'FV-1',
+      };
+
+      const mockResponse = { ok: true, json: sinon.stub().resolves({ ok: true }) };
+      icmClientStub.generatePortalForm.resolves(mockResponse as any);
+
+      const result = await icmService.generatePortalForm(testData);
+
+      expect(result.success).to.be.true;
+      expect(result.data).to.deep.equal({ ok: true });
+
+      const [calledPayload] = icmClientStub.generatePortalForm.getCall(0).args;
+      expect(calledPayload).to.deep.equal({
+        formVersionRefId: 'FV-1',
+        username: 'jane',
+      });
+    });
+
+    it('should return 401 when neither token nor username present', async () => {
+      const result = await icmService.generatePortalForm({ formType: 'portal' } as any);
+      expect(result.success).to.be.false;
+      expect(result.status).to.equal(401);
+      expect(result.error).to.match(/Authentication required/i);
+    });
+
+    it('should handle client error cleanly', async () => {
+      const testData = { username: 'x', formType: 'portal' };
+      icmClientStub.generatePortalForm.rejects(new Error('Boom'));
+
+      const result = await icmService.generatePortalForm(testData);
+
+      expect(result.success).to.be.false;
+      expect(result.error).to.equal('Failed to generate portal form: Boom');
+      expect(result.status).to.equal(500);
+    });
+  });
+
 });

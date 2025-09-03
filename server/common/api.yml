@@ -286,4 +286,19 @@ paths:
           description: Returns example object
         404:
           description: Example not found
+          
+  /generatePortalForm:
+    post:
+      tags:
+        - Communications Layer
+        - Kiln Interface
+      description: Generate a portal form
+      parameters:
+        - in: body
+          name: data
+          schema:
+            type: object
+      responses:
+        200:
+          description: Portal form generated
 

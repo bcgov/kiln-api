@@ -112,6 +112,30 @@ export class CommunicationsController {
     }
   }
 
+  async generatePortalForm(req: Request, res: Response): Promise<void> {
+    const originalServer = req.headers['x-original-server'] as string;
+    const { token, username, ...params } = req.body;
+
+    const authHeader = req.headers.authorization;
+    const authToken =
+      token ||
+      (authHeader?.startsWith('Bearer ')
+        ? authHeader.substring(7)
+        : authHeader);
+
+    const result = await ICMService.generatePortalForm(
+      { ...params, username, originalServer },
+      authToken
+    );
+
+    if (result.success) {
+      res.status(200).json(result.data);
+    } else {
+      res.status(result.status || 500).json({ error: result.error });
+    }
+  }
+
+
   pdfRender(req: Request, res: Response): void {
     res.json({ endpoint: 'pdfRender', payload: req.body });
   }
