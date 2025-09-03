@@ -4,28 +4,52 @@ import express from 'express';
 import DefaultController from './default.controller';
 import CommunicationsController from './communications.controller';
 import RendererController from './renderer.controller';
+import examplesRouter from './examples/router';
 
 const router = express.Router();
 
-// Default / Health Check Routes
-router.get('/', DefaultController.all);
-router.post('/', DefaultController.create);
-router.get('/:id', DefaultController.byId);
-
 // Communications Layer Routes
-router.post('/saveData', CommunicationsController.saveData);
-router.post('/generate', CommunicationsController.generateForm);
-router.post('/edit', CommunicationsController.editFormData);
-router.post('/saveICMData', CommunicationsController.saveICMData);
-router.post('/loadICMData', CommunicationsController.loadICMData);
-router.post('/clearICMLockedFlag', CommunicationsController.clearICMLockedFlag);
-router.post('/loadSavedJson', CommunicationsController.loadSavedJson);
-router.post('/pdfRender', CommunicationsController.pdfRender);
-router.post('/generatePDFFromJson', CommunicationsController.generatePDFFromJson);
-router.post('/generateNewTemplate', CommunicationsController.generateNewTemplate);
+router.post('/saveICMData', (req, res) =>
+  CommunicationsController.saveICMData(req, res)
+);
+router.post('/saveForm', (req, res) =>
+  CommunicationsController.saveData(req, res)
+);
+router.post('/generateForm', (req, res) =>
+  CommunicationsController.generateForm(req, res)
+);
+router.post('/editForm', (req, res) =>
+  CommunicationsController.editFormData(req, res)
+);
+router.post('/loadICMData', (req, res) =>
+  CommunicationsController.loadICMData(req, res)
+);
+router.post('/clearICMLockedFlag', (req, res) =>
+  CommunicationsController.clearICMLockedFlag(req, res)
+);
+router.post('/loadSavedJson', (req, res) =>
+  CommunicationsController.loadSavedJson(req, res)
+);
+router.post('/pdfRender/:pdfTemplateId', (req, res) =>
+  CommunicationsController.pdfRender(req, res)
+);
+router.post('/generatePDFFromJson', (req, res) =>
+  CommunicationsController.generatePDFFromJson(req, res)
+);
+router.post('/generateNewTemplate', (req, res) =>
+  CommunicationsController.generateNewTemplate(req, res)
+);
 
 // Kiln Renderer Routes
-router.get('/view', RendererController.viewForm);
-router.get('/edit', RendererController.editForm);
+router.get('/view', (req, res) => RendererController.viewForm(req, res));
+router.get('/edit', (req, res) => RendererController.editForm(req, res));
+
+// Examples Routes
+router.use('/examples', examplesRouter);
+
+// Default / Health Check Routes (put last to avoid conflicts)
+router.get('/', (req, res) => DefaultController.all(req, res));
+router.post('/', (req, res) => DefaultController.create(req, res));
+router.get('/:id', (req, res) => DefaultController.byId(req, res));
 
 export default router;

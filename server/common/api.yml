@@ -17,6 +17,8 @@ tags:
     description: Endpoints available for ICM user interface interactions
   - name: Kiln Interface
     description: Endpoints for Kiln interface operations
+  - name: Examples
+    description: Example endpoints for testing
 
 consumes:
   - application/json
@@ -32,6 +34,31 @@ paths:
       responses:
         200:
           description: Returns API status
+    post:
+      tags:
+        - Default
+      description: Create endpoint for testing
+      parameters:
+        - in: body
+          name: data
+          schema:
+            type: object
+      responses:
+        201:
+          description: Create endpoint hit
+  /{id}:
+    get:
+      tags:
+        - Default
+      description: Get by ID endpoint for testing
+      parameters:
+        - in: path
+          name: id
+          type: string
+          required: true
+      responses:
+        200:
+          description: Returns message with ID
 
   /preview:
     get:
@@ -53,11 +80,11 @@ paths:
         200:
           description: Form rendered
   /edit:
-    post:
+    get:
       tags:
         - Kiln Renderer
         - ICM User Interface
-      description: Render an editable and saveable form
+      description: Render an editable and saveable form (GET)
       responses:
         200:
           description: Form rendered
@@ -172,21 +199,33 @@ paths:
         200:
           description: JSON data loaded successfully
 
-  /pdfRender:
+  /pdfRender/{pdfTemplateId}:
     post:
       tags:
         - Communications Layer
         - Kiln Interface
-      description: Render a PDF from form data
+      description: Render a PDF from form data using a specific template
       parameters:
+        - in: path
+          name: pdfTemplateId
+          type: string
+          required: true
+          description: The ID of the PDF template to use
         - in: body
           name: pdfData
-          required: true
+          required: false
           schema:
             type: object
+      produces:
+        - application/pdf
+        - application/json
       responses:
         200:
           description: PDF rendered successfully
+        400:
+          description: Bad request - missing or invalid parameters
+        500:
+          description: Internal server error
 
   /generatePDFFromJson:
     post:
@@ -219,4 +258,44 @@ paths:
       responses:
         200:
           description: Template generated successfully
+
+  /examples:
+    get:
+      tags:
+        - Examples
+      description: Get all examples
+      responses:
+        200:
+          description: Returns array of examples
+    post:
+      tags:
+        - Examples
+      description: Create a new example
+      parameters:
+        - in: body
+          name: example
+          required: true
+          schema:
+            type: object
+            properties:
+              name:
+                type: string
+      responses:
+        201:
+          description: Example created successfully
+  /examples/{id}:
+    get:
+      tags:
+        - Examples
+      description: Get example by ID
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+      responses:
+        200:
+          description: Returns example object
+        404:
+          description: Example not found
 
