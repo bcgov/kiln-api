@@ -39,6 +39,9 @@ router.post('/generatePDFFromJson', (req, res) =>
 router.post('/generateNewTemplate', (req, res) =>
   CommunicationsController.generateNewTemplate(req, res)
 );
+router.post('/loadPortalForm', (req, res) =>
+  CommunicationsController.loadPortalForm(req, res)
+);
 
 // Kiln Renderer Routes
 router.get('/view', (req, res) => RendererController.viewForm(req, res));
