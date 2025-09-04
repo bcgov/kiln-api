@@ -106,8 +106,8 @@ export class ICMService {
       error instanceof Error
         ? error.message
         : typeof error === 'string'
-        ? error
-        : 'Unknown error occurred';
+          ? error
+          : 'Unknown error occurred';
 
     L.error(errorMessage, error);
 
@@ -365,6 +365,38 @@ export class ICMService {
         error,
         'Failed to generate PDF'
       ) as PdfRenderResult;
+    }
+  }
+
+  async generatePortalForm(
+    data: { username?: string; originalServer?: string;[k: string]: any },
+    token?: string
+  ): Promise<{ success: boolean; data?: any; error?: string; status?: number }> {
+    try {
+      const { username, originalServer, ...params } = data || {};
+      const payload: Record<string, any> = { ...params };
+
+      if (token && String(token).trim()) {
+        payload.token = token;
+      } else if (username && String(username).trim()) {
+        payload.username = username;
+      } else {
+        return {
+          success: false,
+          status: 401,
+          error:
+            'Authentication required: either token or username must be provided',
+        };
+      }
+
+      const resp = await this.icmClient.generatePortalForm(payload, originalServer);
+
+      return this.handleResponse(
+        resp,
+        'Error generating portal form. Please try again.'
+      );
+    } catch (err) {
+      return this.handleError(err, 'Failed to generate portal form');
     }
   }
 }

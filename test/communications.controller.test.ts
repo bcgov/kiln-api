@@ -11,6 +11,7 @@ describe('Communications Controller', () => {
   let loadSavedJsonStub: sinon.SinonStub;
   let generateFormStub: sinon.SinonStub;
   let pdfRenderStub: sinon.SinonStub;
+  let generatePortalFormStub: sinon.SinonStub;
 
   beforeEach(() => {
     loadICMDataStub = sinon.stub(ICMService, 'loadICMData');
@@ -18,6 +19,7 @@ describe('Communications Controller', () => {
     loadSavedJsonStub = sinon.stub(ICMService, 'loadSavedJson');
     generateFormStub = sinon.stub(ICMService, 'generateForm');
     pdfRenderStub = sinon.stub(ICMService, 'pdfRender');
+    generatePortalFormStub = sinon.stub(ICMService, 'generatePortalForm');
   });
 
   afterEach(() => {
@@ -901,4 +903,192 @@ describe('Communications Controller', () => {
       });
     });
   });
+
+  describe('generatePortalForm endpoint', () => {
+    it('should successfully generate portal form with username', async () => {
+      const testData = {
+        username: 'testuser',
+        formType: 'portal',
+        templateId: 'tpl-123',
+      };
+
+      generatePortalFormStub.resolves({
+        success: true,
+        data: { save_data: { id: 'pf-123', built: true }, status: 'created' },
+      });
+
+      const response = await request(Server)
+        .post('/api/generatePortalForm')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(200);
+
+      expect(response.body).to.deep.equal({
+        save_data: { id: 'pf-123', built: true },
+        status: 'created',
+      });
+
+      expect(generatePortalFormStub.calledOnce).to.be.true;
+      const [data, token] = generatePortalFormStub.getCall(0).args;
+      expect(data).to.deep.equal({
+        formType: 'portal',
+        templateId: 'tpl-123',
+        username: 'testuser',
+        originalServer: undefined,
+      });
+      expect(token).to.be.undefined;
+    });
+
+    it('should successfully generate portal form with token in Authorization header', async () => {
+      const testData = {
+        formType: 'portal',
+        templateId: 'tpl-456',
+      };
+
+      generatePortalFormStub.resolves({
+        success: true,
+        data: { save_data: { id: 'pf-456' }, ok: true },
+      });
+
+      const response = await request(Server)
+        .post('/api/generatePortalForm')
+        .set('Authorization', 'Bearer header-token-123')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(200);
+
+      expect(response.body).to.deep.equal({ save_data: { id: 'pf-456' }, ok: true });
+
+      const [data, token] = generatePortalFormStub.getCall(0).args;
+      expect(data).to.deep.equal({
+        formType: 'portal',
+        templateId: 'tpl-456',
+        username: undefined,
+        originalServer: undefined,
+      });
+      expect(token).to.equal('header-token-123');
+    });
+
+    it('should prioritize token from request body over Authorization header', async () => {
+      const testData = {
+        token: 'body-token-999',
+        formType: 'portal',
+        templateId: 'tpl-priority',
+      };
+
+      generatePortalFormStub.resolves({
+        success: true,
+        data: { save_data: { id: 'pf-priority' } },
+      });
+
+      const response = await request(Server)
+        .post('/api/generatePortalForm')
+        .set('Authorization', 'Bearer header-token-should-be-ignored')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(200);
+
+      expect(response.body).to.deep.equal({ save_data: { id: 'pf-priority' } });
+
+      const [data, token] = generatePortalFormStub.getCall(0).args;
+      expect(token).to.equal('body-token-999');
+      expect(data).to.deep.equal({
+        formType: 'portal',
+        templateId: 'tpl-priority',
+        username: undefined,
+        originalServer: undefined,
+      });
+    });
+
+    it('should pass through originalServer from headers', async () => {
+      const testData = {
+        username: 'testuser',
+        formType: 'portal',
+        templateId: 'tpl-os',
+      };
+
+      generatePortalFormStub.resolves({
+        success: true,
+        data: { save_data: { id: 'pf-os' } },
+      });
+
+      await request(Server)
+        .post('/api/generatePortalForm')
+        .set('x-original-server', 'https://icm-dev.internal')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(200);
+
+      const [data] = generatePortalFormStub.getCall(0).args;
+      expect(data.originalServer).to.equal('https://icm-dev.internal');
+    });
+
+    it('should return 401 when service reports authentication error', async () => {
+      generatePortalFormStub.resolves({
+        success: false,
+        status: 401,
+        error: 'Authentication required',
+      });
+
+      const response = await request(Server)
+        .post('/api/generatePortalForm')
+        // send minimum fields required by your swagger schema so validator passes
+        .send({ formType: 'portal', templateId: 'tpl-unauth' })
+        .expect('Content-Type', /json/)
+        .expect(401);
+
+      expect(response.body).to.deep.equal({ error: 'Authentication required' });
+    });
+
+    it('should handle service error with default status 500', async () => {
+      generatePortalFormStub.resolves({
+        success: false,
+        error: 'Internal portal generation error',
+      });
+
+      const response = await request(Server)
+        .post('/api/generatePortalForm')
+        .send({ formType: 'portal', templateId: 'tpl-err' })
+        .expect('Content-Type', /json/)
+        .expect(500);
+
+      expect(response.body).to.deep.equal({
+        error: 'Internal portal generation error',
+      });
+    });
+
+    it('should pass through all request body parameters', async () => {
+      const testData = {
+        username: 'testuser',
+        formType: 'portal',
+        templateId: 'tpl-777',
+        customField1: 'v1',
+        customField2: 2,
+        metadata: { source: 'api' },
+      };
+
+      generatePortalFormStub.resolves({
+        success: true,
+        data: { save_data: { id: 'pf-777' } },
+      });
+
+      await request(Server)
+        .post('/api/generatePortalForm')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(200);
+
+      const [data] = generatePortalFormStub.getCall(0).args;
+      expect(data).to.deep.equal({
+        formType: 'portal',
+        templateId: 'tpl-777',
+        customField1: 'v1',
+        customField2: 2,
+        metadata: { source: 'api' },
+        username: 'testuser',
+        originalServer: undefined,
+      });
+    });
+  });
+
 });

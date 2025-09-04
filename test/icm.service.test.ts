@@ -938,4 +938,210 @@ describe('ICMService', () => {
       expect(templateId).to.equal('template_with-special.chars@123');
     });
   });
+
+  describe('generatePortalForm', () => {
+    it('should successfully generate portal form with token', async () => {
+      const testData = {
+        username: 'testuser',
+        formType: 'portal',
+        templateId: 'tpl-123',
+        originalServer: 'https://original.example.com',
+        extra: 'value',
+      };
+
+      const mockResponse = {
+        ok: true,
+        json: sinon.stub().resolves({
+          save_data: { built: true, id: 'pf-123' },
+          status: 'created',
+        }),
+      };
+
+      icmClientStub.generatePortalForm.resolves(mockResponse as any);
+
+      const result = await icmService.generatePortalForm(testData, 'test-token');
+
+      expect(result.success).to.be.true;
+      expect(result.data).to.deep.equal({
+        save_data: { built: true, id: 'pf-123' },
+        status: 'created',
+      });
+      expect(icmClientStub.generatePortalForm.calledOnce).to.be.true;
+
+      const [calledPayload, originalServer] =
+        icmClientStub.generatePortalForm.getCall(0).args;
+
+      expect(calledPayload).to.deep.equal({
+        formType: 'portal',
+        templateId: 'tpl-123',
+        extra: 'value',
+        token: 'test-token',
+      });
+      expect(originalServer).to.equal('https://original.example.com');
+    });
+
+    it('should successfully generate portal form with username when no token provided', async () => {
+      const testData = {
+        username: 'testuser',
+        formType: 'portal',
+        templateId: 'tpl-456',
+      };
+
+      const mockResponse = {
+        ok: true,
+        json: sinon.stub().resolves({ save_data: { ok: true } }),
+      };
+
+      icmClientStub.generatePortalForm.resolves(mockResponse as any);
+
+      const result = await icmService.generatePortalForm(testData);
+
+      expect(result.success).to.be.true;
+      expect(result.data).to.deep.equal({ save_data: { ok: true } });
+
+      const [calledPayload, originalServer] =
+        icmClientStub.generatePortalForm.getCall(0).args;
+
+      expect(calledPayload).to.deep.equal({
+        formType: 'portal',
+        templateId: 'tpl-456',
+        username: 'testuser',
+      });
+      expect(originalServer).to.be.undefined;
+    });
+
+    it('should return 401 when neither token nor username is provided', async () => {
+      const testData = {
+        formType: 'portal',
+        templateId: 'tpl-789',
+      };
+
+      const result = await icmService.generatePortalForm(testData);
+
+      expect(result.success).to.be.false;
+      expect(result.error).to.equal(
+        'Authentication required: either token or username must be provided'
+      );
+      expect(result.status).to.equal(401);
+      expect(icmClientStub.generatePortalForm.called).to.be.false;
+    });
+
+    it('should return 401 when username is empty string', async () => {
+      const testData = {
+        username: '   ',
+        formType: 'portal',
+        templateId: 'tpl-000',
+      };
+
+      const result = await icmService.generatePortalForm(testData);
+
+      expect(result.success).to.be.false;
+      expect(result.error).to.equal(
+        'Authentication required: either token or username must be provided'
+      );
+      expect(result.status).to.equal(401);
+      expect(icmClientStub.generatePortalForm.called).to.be.false;
+    });
+
+    it('should handle ICM client API error responses (JSON)', async () => {
+      const testData = {
+        username: 'testuser',
+        formType: 'portal',
+        templateId: 'bad-template',
+      };
+
+      const mockResponse = {
+        ok: false,
+        status: 400,
+        json: sinon.stub().resolves({ error: 'Invalid template' }),
+      };
+
+      icmClientStub.generatePortalForm.resolves(mockResponse as any);
+
+      const result = await icmService.generatePortalForm(testData);
+
+      expect(result.success).to.be.false;
+      expect(result.error).to.equal('Invalid template');
+      expect(result.status).to.equal(400);
+    });
+
+    it('should handle ICM client API error responses with default message', async () => {
+      const testData = {
+        username: 'testuser',
+        formType: 'portal',
+        templateId: 'tpl-err',
+      };
+
+      const mockResponse = {
+        ok: false,
+        status: 500,
+        json: sinon.stub().resolves({}),
+      };
+
+      icmClientStub.generatePortalForm.resolves(mockResponse as any);
+
+      const result = await icmService.generatePortalForm(testData);
+
+      expect(result.success).to.be.false;
+      expect(result.error).to.equal('Error generating portal form. Please try again.');
+      expect(result.status).to.equal(500);
+    });
+
+    it('should handle ICM client exceptions', async () => {
+      const testData = {
+        username: 'testuser',
+        formType: 'portal',
+        templateId: 'tpl-ex',
+      };
+
+      const error = new Error('Network connection failed');
+      icmClientStub.generatePortalForm.rejects(error);
+
+      const result = await icmService.generatePortalForm(testData);
+
+      expect(result.success).to.be.false;
+      expect(result.error).to.equal(
+        'Failed to generate portal form: Network connection failed'
+      );
+      expect(result.status).to.equal(500);
+    });
+
+    it('should pass through additional parameters and originalServer', async () => {
+      const testData = {
+        username: 'testuser',
+        formType: 'portal',
+        templateId: 'tpl-123',
+        custom1: 'A',
+        custom2: 42,
+        originalServer: 'https://icm-dev.internal',
+      };
+
+      const mockResponse = {
+        ok: true,
+        json: sinon.stub().resolves({ save_data: { custom: true } }),
+      };
+
+      icmClientStub.generatePortalForm.resolves(mockResponse as any);
+
+      const result = await icmService.generatePortalForm(testData);
+
+      expect(result.success).to.be.true;
+      expect(result.data).to.deep.equal({ save_data: { custom: true } });
+      expect(icmClientStub.generatePortalForm.calledOnce).to.be.true;
+
+      const [calledPayload, originalServer] =
+        icmClientStub.generatePortalForm.getCall(0).args;
+
+      expect(calledPayload).to.deep.equal({
+        formType: 'portal',
+        templateId: 'tpl-123',
+        custom1: 'A',
+        custom2: 42,
+        username: 'testuser',
+      });
+      expect(originalServer).to.equal('https://icm-dev.internal');
+    });
+  });
+
+
 });

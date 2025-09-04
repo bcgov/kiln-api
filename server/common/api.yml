@@ -299,3 +299,30 @@ paths:
         404:
           description: Example not found
 
+  /generatePortalForm:
+    post:
+      tags:
+        - Communications Layer
+      summary: Generate portal form
+      description: Generates a portal form JSON payload.
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: payload
+          required: true
+          schema:
+            type: object
+      responses:
+        200:
+          description: Portal form generated
+          schema:
+            type: object
+        400:
+          description: Bad request
+        401:
+          description: Unauthorized
+        500:
+          description: Internal server error
