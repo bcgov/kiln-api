@@ -938,4 +938,240 @@ describe('ICMService', () => {
       expect(templateId).to.equal('template_with-special.chars@123');
     });
   });
+
+  describe('loadPortalForm', () => {
+    it('should successfully load portal form with token', async () => {
+      const testData = {
+        portalFormId: 'portal-123',
+        userId: 'user-456',
+      };
+
+      const mockResponseData = { 
+        success: true, 
+        formData: { 
+          id: 'portal-123',
+          fields: { field1: 'value1', field2: 'value2' },
+          version: '2.0'
+        } 
+      };
+
+      const mockResponse = {
+        ok: true,
+        json: sinon.stub().resolves(mockResponseData),
+      };
+
+      icmClientStub.loadPortalForm.resolves(mockResponse as any);
+
+      const result = await icmService.loadPortalForm(testData, 'test-token');
+
+      expect(result.success).to.be.true;
+      expect(result.data).to.deep.equal(mockResponseData);
+      expect(icmClientStub.loadPortalForm.calledOnce).to.be.true;
+
+      const [calledPayload, originalServer] = icmClientStub.loadPortalForm.getCall(0).args;
+      expect(calledPayload).to.deep.equal({
+        portalFormId: 'portal-123',
+        userId: 'user-456',
+        token: 'test-token',
+      });
+      expect(originalServer).to.be.undefined;
+    });
+
+    it('should successfully load portal form with originalServer', async () => {
+      const testData = {
+        portalFormId: 'portal-789',
+      };
+
+      const mockResponseData = { 
+        success: true, 
+        formData: { id: 'portal-789' } 
+      };
+
+      const mockResponse = {
+        ok: true,
+        json: sinon.stub().resolves(mockResponseData),
+      };
+
+      icmClientStub.loadPortalForm.resolves(mockResponse as any);
+
+      const result = await icmService.loadPortalForm(
+        testData,
+        'test-token',
+        'portal.example.com'
+      );
+
+      expect(result.success).to.be.true;
+      expect(result.data).to.deep.equal(mockResponseData);
+      expect(icmClientStub.loadPortalForm.calledOnce).to.be.true;
+
+      const [calledPayload, originalServer] = icmClientStub.loadPortalForm.getCall(0).args;
+      expect(calledPayload).to.deep.equal({
+        portalFormId: 'portal-789',
+        token: 'test-token',
+      });
+      expect(originalServer).to.equal('portal.example.com');
+    });
+
+    it('should return error when request data is null', async () => {
+      const result = await icmService.loadPortalForm(null as any);
+
+      expect(result.success).to.be.false;
+      expect(result.error).to.equal('Request data is required');
+      expect(result.status).to.equal(400);
+      expect(icmClientStub.loadPortalForm.called).to.be.false;
+    });
+
+    it('should return error when request data is empty object', async () => {
+      const result = await icmService.loadPortalForm({});
+
+      expect(result.success).to.be.false;
+      expect(result.error).to.equal('Request data is required');
+      expect(result.status).to.equal(400);
+      expect(icmClientStub.loadPortalForm.called).to.be.false;
+    });
+
+    it('should handle ICM client API error responses', async () => {
+      const testData = { portalFormId: 'invalid-form' };
+
+      const mockErrorResponse = {
+        error: 'Not Found',
+        message: 'Portal form not found',
+      };
+
+      const mockResponse = {
+        ok: false,
+        status: 404,
+        json: sinon.stub().resolves(mockErrorResponse),
+      };
+
+      icmClientStub.loadPortalForm.resolves(mockResponse as any);
+
+      const result = await icmService.loadPortalForm(testData);
+
+      expect(result.success).to.be.false;
+      expect(result.error).to.equal('Not Found');
+      expect(result.status).to.equal(404);
+    });
+
+    it('should handle ICM client API error responses with default error message', async () => {
+      const testData = { portalFormId: 'error-form' };
+
+      const mockResponse = {
+        ok: false,
+        status: 500,
+        json: sinon.stub().resolves({}),
+      };
+
+      icmClientStub.loadPortalForm.resolves(mockResponse as any);
+
+      const result = await icmService.loadPortalForm(testData);
+
+      expect(result.success).to.be.false;
+      expect(result.error).to.equal('Error loading portal form. Please try again.');
+      expect(result.status).to.equal(500);
+    });
+
+    it('should handle ICM client exceptions', async () => {
+      const testData = { portalFormId: 'exception-form' };
+
+      const clientError = new Error('Connection failed');
+      icmClientStub.loadPortalForm.rejects(clientError);
+
+      const result = await icmService.loadPortalForm(testData);
+
+      expect(result.success).to.be.false;
+      expect(result.error).to.equal('Failed to load portal form: Connection failed');
+      expect(result.status).to.equal(500);
+    });
+
+    it('should handle unknown errors', async () => {
+      const testData = { portalFormId: 'unknown-error-form' };
+
+      icmClientStub.loadPortalForm.rejects(new Error('Unknown error occurred'));
+
+      const result = await icmService.loadPortalForm(testData);
+
+      expect(result.success).to.be.false;
+      expect(result.error).to.equal('Failed to load portal form: Unknown error occurred');
+      expect(result.status).to.equal(500);
+    });
+
+    it('should pass through additional parameters to ICM client', async () => {
+      const testData = {
+        portalFormId: 'complex-form',
+        options: {
+          includeHistory: true,
+          version: 'latest',
+          metadata: { source: 'portal', timestamp: '2023-01-01T00:00:00Z' }
+        },
+        filters: ['field1', 'field2'],
+      };
+
+      const mockResponseData = { 
+        success: true, 
+        formData: { 
+          id: 'complex-form',
+          history: [{ version: '1.0' }, { version: '2.0' }],
+          fields: { field1: 'value1', field2: 'value2' }
+        } 
+      };
+
+      const mockResponse = {
+        ok: true,
+        json: sinon.stub().resolves(mockResponseData),
+      };
+
+      icmClientStub.loadPortalForm.resolves(mockResponse as any);
+
+      const result = await icmService.loadPortalForm(testData, 'test-token');
+
+      expect(result.success).to.be.true;
+      expect(result.data).to.deep.equal(mockResponseData);
+      expect(icmClientStub.loadPortalForm.calledOnce).to.be.true;
+
+      const [calledPayload] = icmClientStub.loadPortalForm.getCall(0).args;
+      expect(calledPayload).to.deep.equal({
+        portalFormId: 'complex-form',
+        options: {
+          includeHistory: true,
+          version: 'latest',
+          metadata: { source: 'portal', timestamp: '2023-01-01T00:00:00Z' }
+        },
+        filters: ['field1', 'field2'],
+        token: 'test-token',
+      });
+    });
+
+    it('should work without token parameter', async () => {
+      const testData = {
+        portalFormId: 'no-token-form',
+        apiKey: 'api-key-123',
+      };
+
+      const mockResponseData = { 
+        success: true, 
+        formData: { id: 'no-token-form' } 
+      };
+
+      const mockResponse = {
+        ok: true,
+        json: sinon.stub().resolves(mockResponseData),
+      };
+
+      icmClientStub.loadPortalForm.resolves(mockResponse as any);
+
+      const result = await icmService.loadPortalForm(testData);
+
+      expect(result.success).to.be.true;
+      expect(result.data).to.deep.equal(mockResponseData);
+      expect(icmClientStub.loadPortalForm.calledOnce).to.be.true;
+
+      const [calledPayload] = icmClientStub.loadPortalForm.getCall(0).args;
+      expect(calledPayload).to.deep.equal({
+        portalFormId: 'no-token-form',
+        apiKey: 'api-key-123',
+      });
+      expect(calledPayload.token).to.be.undefined;
+    });
+  });
 });
