@@ -227,10 +227,6 @@ export class CommunicationsController {
       res.status(result.status || 500).json({ error: result.error });
     }
   }
-
-  generatePDFFromJson(req: Request, res: Response): void {
-    res.json({ endpoint: 'generatePDFFromJson', payload: req.body });
-  }
 }
 
 export default new CommunicationsController();
