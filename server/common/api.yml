@@ -60,16 +60,6 @@ paths:
         200:
           description: Returns message with ID
 
-  /preview:
-    get:
-      tags:
-        - Kiln Renderer
-        - ICM User Interface
-      description: Render an interactive preview-only form
-      responses:
-        200:
-          description: Form rendered
-
   /view:
     get:
       tags:
@@ -88,21 +78,6 @@ paths:
       responses:
         200:
           description: Form rendered
-
-  /saveForm:
-    post:
-      tags:
-        - Communications Layer
-        - Kiln Interface
-      description: Save form data
-      parameters:
-        - in: body
-          name: data
-          schema:
-            type: object
-      responses:
-        200:
-          description: Data saved
 
   /generateForm:
     post:
@@ -227,38 +202,6 @@ paths:
         500:
           description: Internal server error
 
-  /generatePDFFromJson:
-    post:
-      tags:
-        - Communications Layer
-        - ICM User Interface
-      description: Generate a PDF from JSON
-      parameters:
-        - in: body
-          name: jsonData
-          required: true
-          schema:
-            type: object
-      responses:
-        200:
-          description: PDF generated successfully
-
-  /generateNewTemplate:
-    post:
-      tags:
-        - Communications Layer
-        - ICM User Interface
-      description: Generate a new form template
-      parameters:
-        - in: body
-          name: templateData
-          required: true
-          schema:
-            type: object
-      responses:
-        200:
-          description: Template generated successfully
-
   /loadPortalForm:
     post:
       tags:
@@ -278,6 +221,38 @@ paths:
           description: Bad request - invalid data
         404:
           description: Portal form not found
+        500:
+          description: Internal server error
+
+  /submitForPortalAction:
+    post:
+      tags:
+        - Communications Layer
+        - ICM User Interface
+      description: Submit portal action
+      parameters:
+        - in: body
+          name: actionData
+          required: true
+          schema:
+            type: object
+            properties:
+              tokenId:
+                type: string
+                description: Token ID for authentication
+              savedForm:
+                type: string
+                description: Saved form data
+              config:
+                type: object
+                description: Action configuration
+      responses:
+        200:
+          description: Portal action submitted successfully
+        400:
+          description: Bad request - missing required fields
+        401:
+          description: Unauthorized
         500:
           description: Internal server error
 

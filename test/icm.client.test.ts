@@ -1024,4 +1024,263 @@ describe('ICMClient', () => {
       ).to.be.true;
     });
   });
+
+  describe('submitForPortalAction', () => {
+    it('should throw error when COMM_API_SUBMIT_TO_ACTION_ENDPOINT_URL is not set', async () => {
+      delete process.env.COMM_API_SUBMIT_TO_ACTION_ENDPOINT_URL;
+
+      try {
+        await icmClient.submitForPortalAction({ tokenId: 'test-token' });
+        expect.fail('Should have thrown an error');
+      } catch (error) {
+        expect(error.message).to.equal(
+          'COMM_API_SUBMIT_TO_ACTION_ENDPOINT_URL environment variable is required'
+        );
+      }
+    });
+
+    it('should make successful API call and return proper response', async () => {
+      // Arrange
+      process.env.COMM_API_SUBMIT_TO_ACTION_ENDPOINT_URL =
+        'https://api.example.com/portal/submit-action';
+      process.env.COMM_API_TIMEOUT = '5000';
+
+      const mockPayload = { 
+        tokenId: 'token-123', 
+        savedForm: 'form-data',
+        config: { action: 'submit' }
+      };
+      const mockResponseData = {
+        success: true,
+        actionId: 'action-456',
+        status: 'submitted'
+      };
+
+      axiosPostStub.resolves({
+        status: 200,
+        data: mockResponseData,
+      });
+
+      // Act
+      const result = await icmClient.submitForPortalAction(mockPayload);
+
+      // Assert
+      expect(result.ok).to.be.true;
+      expect(result.status).to.equal(200);
+
+      const jsonData = await result.json();
+      expect(jsonData).to.deep.equal(mockResponseData);
+
+      // Verify axios was called with correct parameters
+      expect(axiosPostStub.calledOnce).to.be.true;
+      expect(
+        axiosPostStub.calledWith(
+          'https://api.example.com/portal/submit-action',
+          mockPayload,
+          {
+            headers: { 'Content-Type': 'application/json' },
+            timeout: 5000,
+          }
+        )
+      ).to.be.true;
+    });
+
+    it('should use default timeout when COMM_API_TIMEOUT is not set', async () => {
+      // Arrange
+      process.env.COMM_API_SUBMIT_TO_ACTION_ENDPOINT_URL =
+        'https://api.example.com/portal/submit-action';
+      delete process.env.COMM_API_TIMEOUT;
+
+      const mockPayload = { 
+        tokenId: 'token-789', 
+        savedForm: 'form-data',
+        config: { action: 'default-timeout' }
+      };
+
+      axiosPostStub.resolves({
+        status: 200,
+        data: { success: true },
+      });
+
+      // Act
+      await icmClient.submitForPortalAction(mockPayload);
+
+      // Assert
+      expect(axiosPostStub.calledOnce).to.be.true;
+      const [, , config] = axiosPostStub.getCall(0).args;
+      expect(config.timeout).to.equal(30000);
+    });
+
+    it('should handle axios error responses properly', async () => {
+      // Arrange
+      process.env.COMM_API_SUBMIT_TO_ACTION_ENDPOINT_URL =
+        'https://api.example.com/portal/submit-action';
+
+      const mockPayload = { 
+        tokenId: 'invalid-token', 
+        savedForm: 'form-data',
+        config: { action: 'submit' }
+      };
+      const mockErrorResponse = {
+        error: 'Unauthorized',
+        message: 'Invalid token provided',
+      };
+
+      const axiosError = {
+        response: {
+          status: 401,
+          data: mockErrorResponse,
+        },
+      };
+
+      axiosPostStub.rejects(axiosError);
+
+      // Act
+      const result = await icmClient.submitForPortalAction(mockPayload);
+
+      // Assert
+      expect(result.ok).to.be.false;
+      expect(result.status).to.equal(401);
+
+      const jsonData = await result.json();
+      expect(jsonData).to.deep.equal(mockErrorResponse);
+    });
+
+    it('should handle axios error responses with default status 500', async () => {
+      // Arrange
+      process.env.COMM_API_SUBMIT_TO_ACTION_ENDPOINT_URL =
+        'https://api.example.com/portal/submit-action';
+
+      const mockPayload = { 
+        tokenId: 'error-token', 
+        savedForm: 'form-data',
+        config: { action: 'submit' }
+      };
+
+      const axiosError = {
+        response: {
+          // Missing status, should default to 500
+          data: { error: 'Internal server error' },
+        },
+      };
+
+      axiosPostStub.rejects(axiosError);
+
+      // Act
+      const result = await icmClient.submitForPortalAction(mockPayload);
+
+      // Assert
+      expect(result.ok).to.be.false;
+      expect(result.status).to.equal(500);
+
+      const jsonData = await result.json();
+      expect(jsonData).to.deep.equal({ error: 'Internal server error' });
+    });
+
+    it('should handle non-axios errors by rethrowing', async () => {
+      // Arrange
+      process.env.COMM_API_SUBMIT_TO_ACTION_ENDPOINT_URL =
+        'https://api.example.com/portal/submit-action';
+
+      const mockPayload = { 
+        tokenId: 'network-error-token', 
+        savedForm: 'form-data',
+        config: { action: 'submit' }
+      };
+      const networkError = new Error('Connection timeout');
+
+      axiosPostStub.rejects(networkError);
+
+      // Act & Assert
+      try {
+        await icmClient.submitForPortalAction(mockPayload);
+        expect.fail('Should have thrown the network error');
+      } catch (error) {
+        expect(error.message).to.equal('Connection timeout');
+      }
+    });
+
+    it('should handle different success status codes', async () => {
+      // Arrange
+      process.env.COMM_API_SUBMIT_TO_ACTION_ENDPOINT_URL =
+        'https://api.example.com/portal/submit-action';
+
+      const mockPayload = { 
+        tokenId: 'created-token', 
+        savedForm: 'form-data',
+        config: { action: 'create' }
+      };
+      const mockResponseData = {
+        success: true,
+        actionId: 'created-action',
+      };
+
+      axiosPostStub.resolves({
+        status: 201,
+        data: mockResponseData,
+      });
+
+      // Act
+      const result = await icmClient.submitForPortalAction(mockPayload);
+
+      // Assert
+      expect(result.ok).to.be.true;
+      expect(result.status).to.equal(201);
+
+      const jsonData = await result.json();
+      expect(jsonData).to.deep.equal(mockResponseData);
+    });
+
+    it('should handle complex payload structures', async () => {
+      // Arrange
+      process.env.COMM_API_SUBMIT_TO_ACTION_ENDPOINT_URL =
+        'https://api.example.com/portal/submit-action';
+
+      const mockPayload = {
+        tokenId: 'complex-token',
+        savedForm: JSON.stringify({
+          formData: { field1: 'value1', field2: 'value2' },
+          metadata: { version: '2.0', lastModified: '2023-01-01' }
+        }),
+        config: {
+          action: 'submit',
+          options: {
+            validate: true,
+            notify: ['admin@example.com'],
+            workflow: 'approval'
+          }
+        }
+      };
+      const mockResponseData = {
+        success: true,
+        actionId: 'complex-action-123',
+        workflowId: 'workflow-456'
+      };
+
+      axiosPostStub.resolves({
+        status: 200,
+        data: mockResponseData,
+      });
+
+      // Act
+      const result = await icmClient.submitForPortalAction(mockPayload);
+
+      // Assert
+      expect(result.ok).to.be.true;
+      expect(result.status).to.equal(200);
+
+      const jsonData = await result.json();
+      expect(jsonData).to.deep.equal(mockResponseData);
+
+      // Verify axios was called with the complex payload
+      expect(axiosPostStub.calledOnce).to.be.true;
+      expect(
+        axiosPostStub.calledWith(
+          'https://api.example.com/portal/submit-action',
+          mockPayload,
+          sinon.match.any
+        )
+      ).to.be.true;
+    });
+  });
 });

@@ -2,10 +2,6 @@ import { Request, Response } from 'express';
 import ICMService from '../services/icm.service';
 
 export class CommunicationsController {
-  saveData(req: Request, res: Response): void {
-    res.json({ endpoint: 'saveForm', payload: req.body });
-  }
-
   async generateForm(req: Request, res: Response): Promise<void> {
     const originalServer = req.headers['x-original-server'] as string;
     const { token, username, ...params } = req.body;
@@ -210,12 +206,32 @@ export class CommunicationsController {
     }
   }
 
-  generatePDFFromJson(req: Request, res: Response): void {
-    res.json({ endpoint: 'generatePDFFromJson', payload: req.body });
-  }
+  async submitForPortalAction(req: Request, res: Response): Promise<void> {
+    try {
+      const { tokenId, savedForm, config } = req.body;
 
-  generateNewTemplate(req: Request, res: Response): void {
-    res.json({ endpoint: 'generateNewTemplate', payload: req.body });
+      // TODO: Implement authentication/authorization when available
+
+      const result = await ICMService.submitForPortalAction({
+        tokenId,
+        savedForm,
+        config,
+      });
+
+      if (result.success) {
+        res.status(200).json(result.data);
+      } else {
+        res.status(result.status || 500).json({ error: result.error });
+      }
+    } catch (error) {
+      let errorMessage = 'Internal server error';
+      if (error instanceof Error && error.message) {
+        errorMessage = error.message;
+      }
+      res.status(500).json({
+        error: errorMessage,
+      });
+    }
   }
 }
 

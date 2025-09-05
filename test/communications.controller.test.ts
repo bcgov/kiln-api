@@ -13,6 +13,7 @@ describe('Communications Controller', () => {
   let pdfRenderStub: sinon.SinonStub;
   let generatePortalFormStub: sinon.SinonStub;
   let loadPortalFormStub: sinon.SinonStub;
+  let submitForPortalActionStub: sinon.SinonStub;
 
   beforeEach(() => {
     loadICMDataStub = sinon.stub(ICMService, 'loadICMData');
@@ -22,23 +23,12 @@ describe('Communications Controller', () => {
     pdfRenderStub = sinon.stub(ICMService, 'pdfRender');
     generatePortalFormStub = sinon.stub(ICMService, 'generatePortalForm');
     loadPortalFormStub = sinon.stub(ICMService, 'loadPortalForm');
+    submitForPortalActionStub = sinon.stub(ICMService, 'submitForPortalAction');
   });
 
   afterEach(() => {
     sinon.restore();
   });
-
-  // Test sample of placeholder endpoints to verify basic connectivity
-  it('should respond to POST /api/saveForm', () =>
-    request(Server)
-      .post('/api/saveForm')
-      .send({ test: true })
-      .expect('Content-Type', /json/)
-      .expect(200)
-      .then((res) => {
-        expect(res.body).to.have.property('endpoint', 'saveForm');
-        expect(res.body.payload).to.have.property('test', true);
-      }));
 
   describe('generateForm endpoint', () => {
     it('should successfully generate form with username', async () => {
@@ -1509,6 +1499,250 @@ describe('Communications Controller', () => {
       expect(data.portalFormId).to.equal('portal-headers');
       expect(token).to.equal('header-token');
       expect(originalServer).to.equal('https://headers.example.com');
+    });
+  });
+
+  describe('submitForPortalAction endpoint', () => {
+    it('should successfully submit portal action with all required fields', async () => {
+      const testData = {
+        tokenId: 'token-123',
+        savedForm: 'form-data-json',
+        config: { action: 'submit', workflow: 'approval' },
+      };
+
+      submitForPortalActionStub.resolves({
+        success: true,
+        data: {
+          success: true,
+          actionId: 'action-456',
+          status: 'submitted',
+        },
+      });
+
+      const response = await request(Server)
+        .post('/api/submitForPortalAction')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(200);
+
+      expect(response.body).to.deep.equal({
+        success: true,
+        actionId: 'action-456',
+        status: 'submitted',
+      });
+
+      expect(submitForPortalActionStub.calledOnce).to.be.true;
+      const data = submitForPortalActionStub.getCall(0).args[0];
+      expect(data).to.deep.equal({
+        tokenId: 'token-123',
+        savedForm: 'form-data-json',
+        config: { action: 'submit', workflow: 'approval' },
+      });
+    });
+
+    it('should return error when tokenId is missing', async () => {
+      const testData = {
+        savedForm: 'form-data-json',
+        config: { action: 'submit' },
+      };
+
+      submitForPortalActionStub.resolves({
+        success: false,
+        error: 'Missing required fields: tokenId, savedForm, or config',
+        status: 400,
+      });
+
+      const response = await request(Server)
+        .post('/api/submitForPortalAction')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(400);
+
+      expect(response.body).to.deep.equal({
+        error: 'Missing required fields: tokenId, savedForm, or config',
+      });
+    });
+
+    it('should return error when savedForm is missing', async () => {
+      const testData = {
+        tokenId: 'token-123',
+        config: { action: 'submit' },
+      };
+
+      submitForPortalActionStub.resolves({
+        success: false,
+        error: 'Missing required fields: tokenId, savedForm, or config',
+        status: 400,
+      });
+
+      const response = await request(Server)
+        .post('/api/submitForPortalAction')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(400);
+
+      expect(response.body).to.deep.equal({
+        error: 'Missing required fields: tokenId, savedForm, or config',
+      });
+    });
+
+    it('should return error when config is missing', async () => {
+      const testData = {
+        tokenId: 'token-123',
+        savedForm: 'form-data-json',
+      };
+
+      submitForPortalActionStub.resolves({
+        success: false,
+        error: 'Missing required fields: tokenId, savedForm, or config',
+        status: 400,
+      });
+
+      const response = await request(Server)
+        .post('/api/submitForPortalAction')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(400);
+
+      expect(response.body).to.deep.equal({
+        error: 'Missing required fields: tokenId, savedForm, or config',
+      });
+    });
+
+    it('should handle ICM service error responses', async () => {
+      const testData = {
+        tokenId: 'invalid-token',
+        savedForm: 'form-data-json',
+        config: { action: 'submit' },
+      };
+
+      submitForPortalActionStub.resolves({
+        success: false,
+        error: 'Unauthorized',
+        status: 401,
+      });
+
+      const response = await request(Server)
+        .post('/api/submitForPortalAction')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(401);
+
+      expect(response.body).to.deep.equal({
+        error: 'Unauthorized',
+      });
+    });
+
+    it('should handle ICM service error responses with default error message', async () => {
+      const testData = {
+        tokenId: 'error-token',
+        savedForm: 'form-data-json',
+        config: { action: 'submit' },
+      };
+
+      submitForPortalActionStub.resolves({
+        success: false,
+        error: 'Error submitting button action. Please try again.',
+        status: 500,
+      });
+
+      const response = await request(Server)
+        .post('/api/submitForPortalAction')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(500);
+
+      expect(response.body).to.deep.equal({
+        error: 'Error submitting button action. Please try again.',
+      });
+    });
+
+    it('should handle ICM service exceptions', async () => {
+      const testData = {
+        tokenId: 'exception-token',
+        savedForm: 'form-data-json',
+        config: { action: 'submit' },
+      };
+
+      submitForPortalActionStub.rejects(new Error('Network connection failed'));
+
+      const response = await request(Server)
+        .post('/api/submitForPortalAction')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(500);
+
+      expect(response.body).to.deep.equal({
+        error: 'Network connection failed',
+      });
+    });
+
+    it('should handle non-Error exceptions in try-catch', async () => {
+      const testData = {
+        tokenId: 'unknown-error-token',
+        savedForm: 'form-data-json',
+        config: { action: 'submit' },
+      };
+
+      submitForPortalActionStub.rejects('Unknown error occurred');
+
+      const response = await request(Server)
+        .post('/api/submitForPortalAction')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(500);
+
+      expect(response.body).to.deep.equal({
+        error: 'Internal server error',
+      });
+    });
+
+    it('should pass through complex config structures', async () => {
+      const testData = {
+        tokenId: 'complex-token',
+        savedForm: JSON.stringify({
+          formData: { field1: 'value1', field2: 'value2' },
+          metadata: { version: '2.0', lastModified: '2023-01-01' }
+        }),
+        config: {
+          action: 'submit',
+          options: {
+            validate: true,
+            notify: ['admin@example.com'],
+            workflow: 'approval',
+            priority: 'high'
+          },
+          routing: {
+            successUrl: '/success',
+            errorUrl: '/error'
+          }
+        },
+      };
+
+      submitForPortalActionStub.resolves({
+        success: true,
+        data: {
+          success: true,
+          actionId: 'complex-action-789',
+          workflowId: 'workflow-123',
+        },
+      });
+
+      const response = await request(Server)
+        .post('/api/submitForPortalAction')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(200);
+
+      expect(response.body).to.deep.equal({
+        success: true,
+        actionId: 'complex-action-789',
+        workflowId: 'workflow-123',
+      });
+
+      expect(submitForPortalActionStub.calledOnce).to.be.true;
+      const data = submitForPortalActionStub.getCall(0).args[0];
+      expect(data).to.deep.equal(testData);
     });
   });
 });

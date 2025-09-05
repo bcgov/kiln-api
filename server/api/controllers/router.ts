@@ -12,9 +12,6 @@ const router = express.Router();
 router.post('/saveICMData', (req, res) =>
   CommunicationsController.saveICMData(req, res)
 );
-router.post('/saveForm', (req, res) =>
-  CommunicationsController.saveData(req, res)
-);
 router.post('/generateForm', (req, res) =>
   CommunicationsController.generateForm(req, res)
 );
@@ -33,17 +30,14 @@ router.post('/loadSavedJson', (req, res) =>
 router.post('/pdfRender/:pdfTemplateId', (req, res) =>
   CommunicationsController.pdfRender(req, res)
 );
-router.post('/generatePDFFromJson', (req, res) =>
-  CommunicationsController.generatePDFFromJson(req, res)
-);
-router.post('/generateNewTemplate', (req, res) =>
-  CommunicationsController.generateNewTemplate(req, res)
-);
 router.post('/generatePortalForm', (req, res) =>
   CommunicationsController.generatePortalForm(req, res)
 );
 router.post('/loadPortalForm', (req, res) =>
   CommunicationsController.loadPortalForm(req, res)
+);
+router.post('/submitForPortalAction', (req, res) =>
+  CommunicationsController.submitForPortalAction(req, res)
 );
 
 // Kiln Renderer Routes
