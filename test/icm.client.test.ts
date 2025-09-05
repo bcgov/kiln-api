@@ -205,12 +205,12 @@ describe('ICMClient', () => {
       process.env.COMM_API_TIMEOUT = '5000';
 
       const mockPayload = { formId: 'form-123', version: '1.0' };
-      const mockResponseData = { 
-        success: true, 
-        data: { 
+      const mockResponseData = {
+        success: true,
+        data: {
           savedJson: { field1: 'value1', field2: 'value2' },
           version: '1.0'
-        } 
+        }
       };
 
       axiosPostStub.resolves({
@@ -344,7 +344,7 @@ describe('ICMClient', () => {
       expect(axiosPostStub.calledOnce).to.be.true;
       expect(
         axiosPostStub.calledWith('https://api.example.com/icm/generate', mockPayload, {
-          headers: { 
+          headers: {
             'Content-Type': 'application/json',
             'X-Original-Server': originalServer
           },
@@ -439,7 +439,7 @@ describe('ICMClient', () => {
       // Arrange
       process.env.COMM_API_PDFTEMPLATE_ENDPOINT_URL =
         'https://api.example.com/pdf-service';
-      
+
       const mockPayload = { data: 'test' };
       const pdfTemplateId = 'my-template-456';
 
@@ -619,4 +619,106 @@ describe('ICMClient', () => {
       expect(blobData.equals(largePdfBuffer)).to.be.true;
     });
   });
+
+  describe('generatePortalForm', () => {
+    it('should throw error when COMM_API_GENERATE_PORTAL_FORM_ENDPOINT_URL is not set', async () => {
+      delete process.env.COMM_API_GENERATE_PORTAL_FORM_ENDPOINT_URL;
+
+      try {
+        await icmClient.generatePortalForm({ test: 'data' });
+        expect.fail('Should have thrown an error');
+      } catch (error: any) {
+        expect(error.message).to.equal(
+          'COMM_API_GENERATE_PORTAL_FORM_ENDPOINT_URL environment variable is required'
+        );
+      }
+    });
+
+    it('should make successful API call and return proper JSON response', async () => {
+      process.env.COMM_API_GENERATE_PORTAL_FORM_ENDPOINT_URL =
+        'https://api.example.com/icm/generatePortalForm';
+      process.env.COMM_API_TIMEOUT = '5000';
+
+      const mockPayload = { formType: 'portal', data: { name: 'test' } };
+      const mockResponseData = {
+        save_data: { field1: 'v1', field2: 'v2' },
+        status: 'ok',
+      };
+
+      axiosPostStub.resolves({
+        status: 200,
+        data: mockResponseData,
+      });
+
+      const result = await icmClient.generatePortalForm(mockPayload);
+
+      expect(result.ok).to.be.true;
+      expect(result.status).to.equal(200);
+
+      const jsonData = await result.json();
+      expect(jsonData).to.deep.equal(mockResponseData);
+
+      expect(axiosPostStub.calledOnce).to.be.true;
+      expect(
+        axiosPostStub.calledWith(
+          'https://api.example.com/icm/generatePortalForm',
+          mockPayload,
+          {
+            headers: { 'Content-Type': 'application/json' },
+            timeout: 5000,
+          }
+        )
+      ).to.be.true;
+    });
+
+    it('should include X-Original-Server header when provided', async () => {
+      process.env.COMM_API_GENERATE_PORTAL_FORM_ENDPOINT_URL =
+        'https://api.example.com/icm/generatePortalForm';
+      process.env.COMM_API_TIMEOUT = '5000';
+
+      const mockPayload = { formType: 'portal', data: { name: 'x' } };
+      const originalServer = 'https://icm-dev.internal';
+      axiosPostStub.resolves({ status: 200, data: { ok: true } });
+
+      await icmClient.generatePortalForm(mockPayload, originalServer);
+
+      expect(axiosPostStub.calledOnce).to.be.true;
+      expect(
+        axiosPostStub.calledWith(
+          'https://api.example.com/icm/generatePortalForm',
+          mockPayload,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Original-Server': originalServer,
+            },
+            timeout: 5000,
+          }
+        )
+      ).to.be.true;
+    });
+
+    it('should handle axios error responses properly (JSON error payload)', async () => {
+      process.env.COMM_API_GENERATE_PORTAL_FORM_ENDPOINT_URL =
+        'https://api.example.com/icm/generatePortalForm';
+      process.env.COMM_API_TIMEOUT = '5000';
+
+      const mockPayload = { formType: 'portal', data: { name: 'bad' } };
+      const mockErrorResponse = { error: 'Bad Request', message: 'Invalid data' };
+
+      const axiosError: any = new Error('Request failed');
+      axiosError.response = { status: 400, data: mockErrorResponse };
+
+      axiosPostStub.rejects(axiosError);
+
+      const result = await icmClient.generatePortalForm(mockPayload);
+
+      expect(result.ok).to.be.false;
+      expect(result.status).to.equal(400);
+      const jsonData = await result.json();
+      expect(jsonData).to.deep.equal(mockErrorResponse);
+    });
+  });
+
+
 });
