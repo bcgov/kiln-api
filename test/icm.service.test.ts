@@ -350,7 +350,9 @@ describe('ICMService', () => {
       const result = await icmService.unlockICMData(testData);
 
       expect(result.success).to.be.false;
-      expect(result.error).to.equal('Error unlocking ICM form. Please try again.');
+      expect(result.error).to.equal(
+        'Error unlocking ICM form. Please try again.'
+      );
       expect(result.status).to.equal(500);
     });
 
@@ -367,7 +369,9 @@ describe('ICMService', () => {
       const result = await icmService.unlockICMData(testData);
 
       expect(result.success).to.be.false;
-      expect(result.error).to.equal('Failed to unlock ICM data: Network timeout');
+      expect(result.error).to.equal(
+        'Failed to unlock ICM data: Network timeout'
+      );
       expect(result.status).to.equal(500);
     });
 
@@ -467,7 +471,9 @@ describe('ICMService', () => {
       const result = await icmService.loadSavedJson(testData);
 
       expect(result.success).to.be.false;
-      expect(result.error).to.equal('Error loading saved JSON. Please try again.');
+      expect(result.error).to.equal(
+        'Error loading saved JSON. Please try again.'
+      );
       expect(result.status).to.equal(500);
     });
 
@@ -516,9 +522,11 @@ describe('ICMService', () => {
 
       const mockResponse = {
         ok: true,
-        json: sinon
-          .stub()
-          .resolves({ formId: 'generated-123', success: true, status: 'created' }),
+        json: sinon.stub().resolves({
+          formId: 'generated-123',
+          success: true,
+          status: 'created',
+        }),
       };
 
       icmClientStub.generateForm.resolves(mockResponse as any);
@@ -560,7 +568,10 @@ describe('ICMService', () => {
       const result = await icmService.generateForm(testData);
 
       expect(result.success).to.be.true;
-      expect(result.data).to.deep.equal({ formId: 'generated-456', success: true });
+      expect(result.data).to.deep.equal({
+        formId: 'generated-456',
+        success: true,
+      });
       expect(icmClientStub.generateForm.calledOnce).to.be.true;
 
       const [calledPayload, originalServer] =
@@ -681,7 +692,9 @@ describe('ICMService', () => {
       const result = await icmService.generateForm(testData);
 
       expect(result.success).to.be.false;
-      expect(result.error).to.equal('Failed to generate form: Template not found');
+      expect(result.error).to.equal(
+        'Failed to generate form: Template not found'
+      );
       expect(result.status).to.equal(500);
     });
 
@@ -742,7 +755,8 @@ describe('ICMService', () => {
       expect(result.data).to.deep.equal(mockPdfBuffer);
       expect(icmClientStub.pdfRender.calledOnce).to.be.true;
 
-      const [calledPayload, templateId] = icmClientStub.pdfRender.getCall(0).args;
+      const [calledPayload, templateId] =
+        icmClientStub.pdfRender.getCall(0).args;
       expect(calledPayload).to.deep.equal({
         formData: { name: 'John Doe', email: 'john@example.com' },
         metadata: { version: '1.0' },
@@ -810,7 +824,9 @@ describe('ICMService', () => {
       const result = await icmService.pdfRender(testData);
 
       expect(result.success).to.be.false;
-      expect(result.error).to.equal('Failed to generate PDF: Network connection failed');
+      expect(result.error).to.equal(
+        'Failed to generate PDF: Network connection failed'
+      );
       expect(result.status).to.equal(500);
     });
 
@@ -820,12 +836,16 @@ describe('ICMService', () => {
         formData: { data: 'test' },
       };
 
-      icmClientStub.pdfRender.rejects(new Error('Template service unavailable'));
+      icmClientStub.pdfRender.rejects(
+        new Error('Template service unavailable')
+      );
 
       const result = await icmService.pdfRender(testData);
 
       expect(result.success).to.be.false;
-      expect(result.error).to.equal('Failed to generate PDF: Template service unavailable');
+      expect(result.error).to.equal(
+        'Failed to generate PDF: Template service unavailable'
+      );
       expect(result.status).to.equal(500);
     });
 
@@ -855,7 +875,8 @@ describe('ICMService', () => {
       expect(result.success).to.be.true;
       expect(icmClientStub.pdfRender.calledOnce).to.be.true;
 
-      const [calledPayload, templateId] = icmClientStub.pdfRender.getCall(0).args;
+      const [calledPayload, templateId] =
+        icmClientStub.pdfRender.getCall(0).args;
       expect(calledPayload).to.deep.equal({
         customerName: 'Jane Smith',
         invoiceNumber: 'INV-001',
@@ -910,7 +931,8 @@ describe('ICMService', () => {
       expect(result.data).to.deep.equal(mockPdfBuffer);
       expect(icmClientStub.pdfRender.calledOnce).to.be.true;
 
-      const [calledPayload, templateId] = icmClientStub.pdfRender.getCall(0).args;
+      const [calledPayload, templateId] =
+        icmClientStub.pdfRender.getCall(0).args;
       expect(calledPayload).to.deep.equal({});
       expect(templateId).to.equal('blank-template');
     });
@@ -959,7 +981,10 @@ describe('ICMService', () => {
 
       icmClientStub.generatePortalForm.resolves(mockResponse as any);
 
-      const result = await icmService.generatePortalForm(testData, 'test-token');
+      const result = await icmService.generatePortalForm(
+        testData,
+        'test-token'
+      );
 
       expect(result.success).to.be.true;
       expect(result.data).to.deep.equal({
@@ -1083,7 +1108,9 @@ describe('ICMService', () => {
       const result = await icmService.generatePortalForm(testData);
 
       expect(result.success).to.be.false;
-      expect(result.error).to.equal('Error generating portal form. Please try again.');
+      expect(result.error).to.equal(
+        'Error generating portal form. Please try again.'
+      );
       expect(result.status).to.equal(500);
     });
 
@@ -1150,13 +1177,13 @@ describe('ICMService', () => {
         userId: 'user-456',
       };
 
-      const mockResponseData = { 
-        success: true, 
-        formData: { 
+      const mockResponseData = {
+        success: true,
+        formData: {
           id: 'portal-123',
           fields: { field1: 'value1', field2: 'value2' },
-          version: '2.0'
-        } 
+          version: '2.0',
+        },
       };
 
       const mockResponse = {
@@ -1172,7 +1199,8 @@ describe('ICMService', () => {
       expect(result.data).to.deep.equal(mockResponseData);
       expect(icmClientStub.loadPortalForm.calledOnce).to.be.true;
 
-      const [calledPayload, originalServer] = icmClientStub.loadPortalForm.getCall(0).args;
+      const [calledPayload, originalServer] =
+        icmClientStub.loadPortalForm.getCall(0).args;
       expect(calledPayload).to.deep.equal({
         portalFormId: 'portal-123',
         userId: 'user-456',
@@ -1186,9 +1214,9 @@ describe('ICMService', () => {
         portalFormId: 'portal-789',
       };
 
-      const mockResponseData = { 
-        success: true, 
-        formData: { id: 'portal-789' } 
+      const mockResponseData = {
+        success: true,
+        formData: { id: 'portal-789' },
       };
 
       const mockResponse = {
@@ -1208,7 +1236,8 @@ describe('ICMService', () => {
       expect(result.data).to.deep.equal(mockResponseData);
       expect(icmClientStub.loadPortalForm.calledOnce).to.be.true;
 
-      const [calledPayload, originalServer] = icmClientStub.loadPortalForm.getCall(0).args;
+      const [calledPayload, originalServer] =
+        icmClientStub.loadPortalForm.getCall(0).args;
       expect(calledPayload).to.deep.equal({
         portalFormId: 'portal-789',
         token: 'test-token',
@@ -1271,7 +1300,9 @@ describe('ICMService', () => {
       const result = await icmService.loadPortalForm(testData);
 
       expect(result.success).to.be.false;
-      expect(result.error).to.equal('Error loading portal form. Please try again.');
+      expect(result.error).to.equal(
+        'Error loading portal form. Please try again.'
+      );
       expect(result.status).to.equal(500);
     });
 
@@ -1284,7 +1315,9 @@ describe('ICMService', () => {
       const result = await icmService.loadPortalForm(testData);
 
       expect(result.success).to.be.false;
-      expect(result.error).to.equal('Failed to load portal form: Connection failed');
+      expect(result.error).to.equal(
+        'Failed to load portal form: Connection failed'
+      );
       expect(result.status).to.equal(500);
     });
 
@@ -1296,7 +1329,9 @@ describe('ICMService', () => {
       const result = await icmService.loadPortalForm(testData);
 
       expect(result.success).to.be.false;
-      expect(result.error).to.equal('Failed to load portal form: Unknown error occurred');
+      expect(result.error).to.equal(
+        'Failed to load portal form: Unknown error occurred'
+      );
       expect(result.status).to.equal(500);
     });
 
@@ -1306,18 +1341,18 @@ describe('ICMService', () => {
         options: {
           includeHistory: true,
           version: 'latest',
-          metadata: { source: 'portal', timestamp: '2023-01-01T00:00:00Z' }
+          metadata: { source: 'portal', timestamp: '2023-01-01T00:00:00Z' },
         },
         filters: ['field1', 'field2'],
       };
 
-      const mockResponseData = { 
-        success: true, 
-        formData: { 
+      const mockResponseData = {
+        success: true,
+        formData: {
           id: 'complex-form',
           history: [{ version: '1.0' }, { version: '2.0' }],
-          fields: { field1: 'value1', field2: 'value2' }
-        } 
+          fields: { field1: 'value1', field2: 'value2' },
+        },
       };
 
       const mockResponse = {
@@ -1339,7 +1374,7 @@ describe('ICMService', () => {
         options: {
           includeHistory: true,
           version: 'latest',
-          metadata: { source: 'portal', timestamp: '2023-01-01T00:00:00Z' }
+          metadata: { source: 'portal', timestamp: '2023-01-01T00:00:00Z' },
         },
         filters: ['field1', 'field2'],
         token: 'test-token',
@@ -1352,9 +1387,9 @@ describe('ICMService', () => {
         apiKey: 'api-key-123',
       };
 
-      const mockResponseData = { 
-        success: true, 
-        formData: { id: 'no-token-form' } 
+      const mockResponseData = {
+        success: true,
+        formData: { id: 'no-token-form' },
       };
 
       const mockResponse = {

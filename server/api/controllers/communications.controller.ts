@@ -174,7 +174,7 @@ export class CommunicationsController {
       res.status(result.status || 500).json({ error: result.error });
     }
   }
-  
+
   async loadPortalForm(req: Request, res: Response): Promise<void> {
     try {
       const requestData = req.body;

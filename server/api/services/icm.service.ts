@@ -117,8 +117,8 @@ export class ICMService {
       error instanceof Error
         ? error.message
         : typeof error === 'string'
-          ? error
-          : 'Unknown error occurred';
+        ? error
+        : 'Unknown error occurred';
 
     L.error(errorMessage, error);
 
@@ -380,9 +380,14 @@ export class ICMService {
   }
 
   async generatePortalForm(
-    data: { username?: string; originalServer?: string;[k: string]: any },
+    data: { username?: string; originalServer?: string; [k: string]: any },
     token?: string
-  ): Promise<{ success: boolean; data?: any; error?: string; status?: number }> {
+  ): Promise<{
+    success: boolean;
+    data?: any;
+    error?: string;
+    status?: number;
+  }> {
     try {
       const { username, originalServer, ...params } = data || {};
       const payload: Record<string, any> = { ...params };
@@ -400,7 +405,10 @@ export class ICMService {
         };
       }
 
-      const resp = await this.icmClient.generatePortalForm(payload, originalServer);
+      const resp = await this.icmClient.generatePortalForm(
+        payload,
+        originalServer
+      );
 
       return this.handleResponse(
         resp,
@@ -410,7 +418,7 @@ export class ICMService {
       return this.handleError(err, 'Failed to generate portal form');
     }
   }
-  
+
   async loadPortalForm(
     data: LoadPortalFormRequest,
     token?: string,

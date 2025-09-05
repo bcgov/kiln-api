@@ -256,7 +256,9 @@ export class ICMClient {
     payload: Record<string, any>,
     originalServer?: string
   ) {
-    const url = (process.env.COMM_API_GENERATE_PORTAL_FORM_ENDPOINT_URL || '').trim();
+    const url = (
+      process.env.COMM_API_GENERATE_PORTAL_FORM_ENDPOINT_URL || ''
+    ).trim();
     if (!url) {
       throw new Error(
         'COMM_API_GENERATE_PORTAL_FORM_ENDPOINT_URL environment variable is required'
@@ -265,12 +267,14 @@ export class ICMClient {
 
     const timeout = parseInt(process.env.COMM_API_TIMEOUT || '30000', 10);
 
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
     if (originalServer) headers['X-Original-Server'] = originalServer;
 
     try {
       const res = await axios.post(url, payload, { headers, timeout });
-      return this.createJsonResponse(res);  
+      return this.createJsonResponse(res);
     } catch (error) {
       return this.handleJsonError(error, 'generatePortalForm');
     }

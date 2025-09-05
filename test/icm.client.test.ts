@@ -209,8 +209,8 @@ describe('ICMClient', () => {
         success: true,
         data: {
           savedJson: { field1: 'value1', field2: 'value2' },
-          version: '1.0'
-        }
+          version: '1.0',
+        },
       };
 
       axiosPostStub.resolves({
@@ -231,10 +231,14 @@ describe('ICMClient', () => {
       // Verify axios was called with correct parameters
       expect(axiosPostStub.calledOnce).to.be.true;
       expect(
-        axiosPostStub.calledWith('https://api.example.com/icm/loadsaved', mockPayload, {
-          headers: { 'Content-Type': 'application/json' },
-          timeout: 5000,
-        })
+        axiosPostStub.calledWith(
+          'https://api.example.com/icm/loadsaved',
+          mockPayload,
+          {
+            headers: { 'Content-Type': 'application/json' },
+            timeout: 5000,
+          }
+        )
       ).to.be.true;
     });
 
@@ -311,10 +315,14 @@ describe('ICMClient', () => {
       // Verify axios was called with correct parameters
       expect(axiosPostStub.calledOnce).to.be.true;
       expect(
-        axiosPostStub.calledWith('https://api.example.com/icm/generate', mockPayload, {
-          headers: { 'Content-Type': 'application/json' },
-          timeout: 5000,
-        })
+        axiosPostStub.calledWith(
+          'https://api.example.com/icm/generate',
+          mockPayload,
+          {
+            headers: { 'Content-Type': 'application/json' },
+            timeout: 5000,
+          }
+        )
       ).to.be.true;
     });
 
@@ -343,13 +351,17 @@ describe('ICMClient', () => {
       // Verify axios was called with correct parameters including X-Original-Server header
       expect(axiosPostStub.calledOnce).to.be.true;
       expect(
-        axiosPostStub.calledWith('https://api.example.com/icm/generate', mockPayload, {
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Original-Server': originalServer
-          },
-          timeout: 5000,
-        })
+        axiosPostStub.calledWith(
+          'https://api.example.com/icm/generate',
+          mockPayload,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Original-Server': originalServer,
+            },
+            timeout: 5000,
+          }
+        )
       ).to.be.true;
     });
 
@@ -427,11 +439,15 @@ describe('ICMClient', () => {
       // Verify axios was called with correct parameters
       expect(axiosPostStub.calledOnce).to.be.true;
       expect(
-        axiosPostStub.calledWith('https://api.example.com/pdf/template-123', mockPayload, {
-          headers: { 'Content-Type': 'application/json' },
-          responseType: 'arraybuffer',
-          timeout: 5000,
-        })
+        axiosPostStub.calledWith(
+          'https://api.example.com/pdf/template-123',
+          mockPayload,
+          {
+            headers: { 'Content-Type': 'application/json' },
+            responseType: 'arraybuffer',
+            timeout: 5000,
+          }
+        )
       ).to.be.true;
     });
 
@@ -454,7 +470,9 @@ describe('ICMClient', () => {
       // Assert
       expect(axiosPostStub.calledOnce).to.be.true;
       const [url] = axiosPostStub.getCall(0).args;
-      expect(url).to.equal('https://api.example.com/pdf-service/my-template-456');
+      expect(url).to.equal(
+        'https://api.example.com/pdf-service/my-template-456'
+      );
     });
 
     it('should use default timeout when COMM_API_TIMEOUT is not set', async () => {
@@ -704,7 +722,10 @@ describe('ICMClient', () => {
       process.env.COMM_API_TIMEOUT = '5000';
 
       const mockPayload = { formType: 'portal', data: { name: 'bad' } };
-      const mockErrorResponse = { error: 'Bad Request', message: 'Invalid data' };
+      const mockErrorResponse = {
+        error: 'Bad Request',
+        message: 'Invalid data',
+      };
 
       const axiosError: any = new Error('Request failed');
       axiosError.response = { status: 400, data: mockErrorResponse };
@@ -741,13 +762,13 @@ describe('ICMClient', () => {
       process.env.COMM_API_TIMEOUT = '5000';
 
       const mockPayload = { portalFormId: 'portal-123', userId: 'user-456' };
-      const mockResponseData = { 
-        success: true, 
-        formData: { 
+      const mockResponseData = {
+        success: true,
+        formData: {
           id: 'portal-123',
           fields: { field1: 'value1', field2: 'value2' },
-          version: '2.0'
-        } 
+          version: '2.0',
+        },
       };
 
       axiosPostStub.resolves({
@@ -768,10 +789,14 @@ describe('ICMClient', () => {
       // Verify axios was called with correct parameters
       expect(axiosPostStub.calledOnce).to.be.true;
       expect(
-        axiosPostStub.calledWith('https://api.example.com/portal/forms/load', mockPayload, {
-          headers: { 'Content-Type': 'application/json' },
-          timeout: 5000,
-        })
+        axiosPostStub.calledWith(
+          'https://api.example.com/portal/forms/load',
+          mockPayload,
+          {
+            headers: { 'Content-Type': 'application/json' },
+            timeout: 5000,
+          }
+        )
       ).to.be.true;
     });
 
@@ -783,7 +808,10 @@ describe('ICMClient', () => {
 
       const mockPayload = { portalFormId: 'portal-789' };
       const originalServer = 'portal.example.com';
-      const mockResponseData = { success: true, formData: { id: 'portal-789' } };
+      const mockResponseData = {
+        success: true,
+        formData: { id: 'portal-789' },
+      };
 
       axiosPostStub.resolves({
         status: 200,
@@ -791,7 +819,10 @@ describe('ICMClient', () => {
       });
 
       // Act
-      const result = await icmClient.loadPortalForm(mockPayload, originalServer);
+      const result = await icmClient.loadPortalForm(
+        mockPayload,
+        originalServer
+      );
 
       // Assert
       expect(result.ok).to.be.true;
@@ -800,13 +831,17 @@ describe('ICMClient', () => {
       // Verify axios was called with correct parameters including X-Original-Server header
       expect(axiosPostStub.calledOnce).to.be.true;
       expect(
-        axiosPostStub.calledWith('https://api.example.com/portal/forms/load', mockPayload, {
-          headers: { 
-            'Content-Type': 'application/json',
-            'X-Original-Server': originalServer
-          },
-          timeout: 5000,
-        })
+        axiosPostStub.calledWith(
+          'https://api.example.com/portal/forms/load',
+          mockPayload,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Original-Server': originalServer,
+            },
+            timeout: 5000,
+          }
+        )
       ).to.be.true;
     });
 
@@ -817,7 +852,10 @@ describe('ICMClient', () => {
       delete process.env.COMM_API_TIMEOUT;
 
       const mockPayload = { portalFormId: 'portal-default-timeout' };
-      const mockResponseData = { success: true, formData: { id: 'portal-default-timeout' } };
+      const mockResponseData = {
+        success: true,
+        formData: { id: 'portal-default-timeout' },
+      };
 
       axiosPostStub.resolves({
         status: 200,
@@ -916,7 +954,10 @@ describe('ICMClient', () => {
         'https://api.example.com/portal/forms/load';
 
       const mockPayload = { portalFormId: 'created-form' };
-      const mockResponseData = { success: true, formData: { id: 'created-form' } };
+      const mockResponseData = {
+        success: true,
+        formData: { id: 'created-form' },
+      };
 
       axiosPostStub.resolves({
         status: 201,
@@ -939,22 +980,22 @@ describe('ICMClient', () => {
       process.env.COMM_API_LOAD_PORTAL_FORM_ENDPOINT_URL =
         'https://api.example.com/portal/forms/load';
 
-      const mockPayload = { 
+      const mockPayload = {
         portalFormId: 'complex-form',
         options: {
           includeHistory: true,
           version: 'latest',
-          metadata: { source: 'portal', timestamp: '2023-01-01T00:00:00Z' }
+          metadata: { source: 'portal', timestamp: '2023-01-01T00:00:00Z' },
         },
-        filters: ['field1', 'field2']
+        filters: ['field1', 'field2'],
       };
-      const mockResponseData = { 
-        success: true, 
-        formData: { 
+      const mockResponseData = {
+        success: true,
+        formData: {
           id: 'complex-form',
           history: [{ version: '1.0' }, { version: '2.0' }],
-          fields: { field1: 'value1', field2: 'value2' }
-        } 
+          fields: { field1: 'value1', field2: 'value2' },
+        },
       };
 
       axiosPostStub.resolves({
@@ -974,11 +1015,13 @@ describe('ICMClient', () => {
 
       // Verify axios was called with the complex payload
       expect(axiosPostStub.calledOnce).to.be.true;
-      expect(axiosPostStub.calledWith(
-        'https://api.example.com/portal/forms/load', 
-        mockPayload,
-        sinon.match.any
-      )).to.be.true;
+      expect(
+        axiosPostStub.calledWith(
+          'https://api.example.com/portal/forms/load',
+          mockPayload,
+          sinon.match.any
+        )
+      ).to.be.true;
     });
   });
 });
