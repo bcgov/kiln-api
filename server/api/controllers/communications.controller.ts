@@ -206,12 +206,12 @@ export class CommunicationsController {
     }
   }
 
-  async submitForButtonAction(req: Request, res: Response): Promise<void> {
+  async submitForPortalAction(req: Request, res: Response): Promise<void> {
     const { tokenId, savedForm, config } = req.body;
 
     // TODO: Implement authentication/authorization when available
 
-    const result = await ICMService.submitForButtonAction({
+    const result = await ICMService.submitForPortalAction({
       tokenId,
       savedForm,
       config,

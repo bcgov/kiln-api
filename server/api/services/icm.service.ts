@@ -477,7 +477,7 @@ export class ICMService {
     }
   }
 
-  async submitForButtonAction(
+  async submitForPortalAction(
     data: SubmitButtonActionRequest
   ): Promise<SubmitButtonActionResult> {
     try {
@@ -497,7 +497,7 @@ export class ICMService {
         config,
       };
 
-      const response = await this.icmClient.submitForButtonAction(payload);
+      const response = await this.icmClient.submitForPortalAction(payload);
       return this.handleResponse(
         response,
         'Error submitting button action. Please try again.'

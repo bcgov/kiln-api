@@ -316,7 +316,7 @@ export class ICMClient {
     }
   }
 
-  async submitForButtonAction(payload: any): Promise<ICMJsonResponse> {
+  async submitForPortalAction(payload: any): Promise<ICMJsonResponse> {
     try {
       const url = process.env.COMM_API_SUBMIT_TO_ACTION_ENDPOINT_URL;
 
@@ -341,7 +341,7 @@ export class ICMClient {
 
       return this.createJsonResponse(response);
     } catch (error) {
-      return this.handleJsonError(error, 'submitForButtonAction');
+      return this.handleJsonError(error, 'submitForPortalAction');
     }
   }
 }
