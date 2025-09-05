@@ -91,6 +91,17 @@ interface PdfRenderResult {
   status?: number;
 }
 
+interface LoadPortalFormRequest {
+  [key: string]: any;
+}
+
+interface LoadPortalFormResult {
+  success: boolean;
+  data?: any;
+  error?: string;
+  status?: number;
+}
+
 export class ICMService {
   private icmClient: ICMClient;
 
@@ -397,6 +408,38 @@ export class ICMService {
       );
     } catch (err) {
       return this.handleError(err, 'Failed to generate portal form');
+    }
+  }
+  
+  async loadPortalForm(
+    data: LoadPortalFormRequest,
+    token?: string,
+    originalServer?: string
+  ): Promise<LoadPortalFormResult> {
+    try {
+      if (!data || Object.keys(data).length === 0) {
+        return {
+          success: false,
+          error: 'Request data is required',
+          status: 400,
+        };
+      }
+
+      const payload = {
+        ...data,
+        ...(token && { token }),
+      };
+
+      const response = await this.icmClient.loadPortalForm(
+        payload,
+        originalServer
+      );
+      return this.handleResponse(
+        response,
+        'Error loading portal form. Please try again.'
+      );
+    } catch (error) {
+      return this.handleError(error, 'Failed to load portal form');
     }
   }
 }

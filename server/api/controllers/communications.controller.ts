@@ -174,6 +174,41 @@ export class CommunicationsController {
       res.status(result.status || 500).json({ error: result.error });
     }
   }
+  
+  async loadPortalForm(req: Request, res: Response): Promise<void> {
+    try {
+      const requestData = req.body;
+
+      const authHeader = req.headers.authorization;
+      const token = authHeader?.startsWith('Bearer ')
+        ? authHeader.substring(7)
+        : authHeader;
+
+      const originalServer = req.headers['x-original-server'] as string;
+
+      // TODO: Implement authentication/authorization when available
+
+      const result = await ICMService.loadPortalForm(
+        requestData,
+        token,
+        originalServer
+      );
+
+      if (result.success) {
+        res.status(200).json(result.data);
+      } else {
+        res.status(result.status || 500).json({ error: result.error });
+      }
+    } catch (error) {
+      let errorMessage = 'Internal server error';
+      if (error instanceof Error && error.message) {
+        errorMessage = error.message;
+      }
+      res.status(500).json({
+        error: errorMessage,
+      });
+    }
+  }
 
   generatePDFFromJson(req: Request, res: Response): void {
     res.json({ endpoint: 'generatePDFFromJson', payload: req.body });

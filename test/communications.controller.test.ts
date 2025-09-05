@@ -12,6 +12,7 @@ describe('Communications Controller', () => {
   let generateFormStub: sinon.SinonStub;
   let pdfRenderStub: sinon.SinonStub;
   let generatePortalFormStub: sinon.SinonStub;
+  let loadPortalFormStub: sinon.SinonStub;
 
   beforeEach(() => {
     loadICMDataStub = sinon.stub(ICMService, 'loadICMData');
@@ -20,6 +21,7 @@ describe('Communications Controller', () => {
     generateFormStub = sinon.stub(ICMService, 'generateForm');
     pdfRenderStub = sinon.stub(ICMService, 'pdfRender');
     generatePortalFormStub = sinon.stub(ICMService, 'generatePortalForm');
+    loadPortalFormStub = sinon.stub(ICMService, 'loadPortalForm');
   });
 
   afterEach(() => {
@@ -684,10 +686,7 @@ describe('Communications Controller', () => {
     it('should return 404 when PDF template ID is missing from URL', async () => {
       const formData = { data: 'test' };
 
-      await request(Server)
-        .post('/api/pdfRender/')
-        .send(formData)
-        .expect(404); // Express route not found
+      await request(Server).post('/api/pdfRender/').send(formData).expect(404); // Express route not found
 
       expect(pdfRenderStub.called).to.be.false;
     });
@@ -846,7 +845,9 @@ describe('Communications Controller', () => {
         .expect(200);
 
       const serviceData = pdfRenderStub.getCall(0).args[0];
-      expect(serviceData.pdfTemplateId).to.equal('template_with-special.chars@123');
+      expect(serviceData.pdfTemplateId).to.equal(
+        'template_with-special.chars@123'
+      );
     });
 
     it('should handle large PDF responses', async () => {
@@ -957,7 +958,10 @@ describe('Communications Controller', () => {
         .expect('Content-Type', /json/)
         .expect(200);
 
-      expect(response.body).to.deep.equal({ save_data: { id: 'pf-456' }, ok: true });
+      expect(response.body).to.deep.equal({
+        save_data: { id: 'pf-456' },
+        ok: true,
+      });
 
       const [data, token] = generatePortalFormStub.getCall(0).args;
       expect(data).to.deep.equal({
@@ -1032,7 +1036,6 @@ describe('Communications Controller', () => {
 
       const response = await request(Server)
         .post('/api/generatePortalForm')
-        // send minimum fields required by your swagger schema so validator passes
         .send({ formType: 'portal', templateId: 'tpl-unauth' })
         .expect('Content-Type', /json/)
         .expect(401);
@@ -1091,4 +1094,421 @@ describe('Communications Controller', () => {
     });
   });
 
+  describe('loadPortalForm endpoint', () => {
+    it('should successfully load portal form with basic request data', async () => {
+      const testData = {
+        portalFormId: 'portal-123',
+        userId: 'user-456',
+      };
+
+      loadPortalFormStub.resolves({
+        success: true,
+        data: {
+          success: true,
+          formData: {
+            id: 'portal-123',
+            fields: { field1: 'value1', field2: 'value2' },
+            version: '2.0',
+          },
+        },
+      });
+
+      const response = await request(Server)
+        .post('/api/loadPortalForm')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(200);
+
+      expect(response.body).to.deep.equal({
+        success: true,
+        formData: {
+          id: 'portal-123',
+          fields: { field1: 'value1', field2: 'value2' },
+          version: '2.0',
+        },
+      });
+
+      expect(loadPortalFormStub.calledOnce).to.be.true;
+      const [data, token, originalServer] = loadPortalFormStub.getCall(0).args;
+      expect(data).to.deep.equal({
+        portalFormId: 'portal-123',
+        userId: 'user-456',
+      });
+      expect(token).to.be.undefined;
+      expect(originalServer).to.be.undefined;
+    });
+
+    it('should successfully load portal form with token in Authorization header', async () => {
+      const testData = {
+        portalFormId: 'portal-789',
+      };
+
+      loadPortalFormStub.resolves({
+        success: true,
+        data: { success: true, formData: { id: 'portal-789' } },
+      });
+
+      const response = await request(Server)
+        .post('/api/loadPortalForm')
+        .set('Authorization', 'Bearer test-token-123')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(200);
+
+      expect(response.body).to.deep.equal({
+        success: true,
+        formData: { id: 'portal-789' },
+      });
+
+      const [data, token, originalServer] = loadPortalFormStub.getCall(0).args;
+      expect(data).to.deep.equal({ portalFormId: 'portal-789' });
+      expect(token).to.equal('test-token-123');
+      expect(originalServer).to.be.undefined;
+    });
+
+    it('should successfully load portal form with Bearer prefix removed from token', async () => {
+      const testData = {
+        portalFormId: 'portal-bearer-test',
+      };
+
+      loadPortalFormStub.resolves({
+        success: true,
+        data: { success: true, formData: { id: 'portal-bearer-test' } },
+      });
+
+      await request(Server)
+        .post('/api/loadPortalForm')
+        .set('Authorization', 'Bearer clean-token-456')
+        .send(testData)
+        .expect(200);
+
+      const [, token] = loadPortalFormStub.getCall(0).args;
+      expect(token).to.equal('clean-token-456');
+    });
+
+    it('should pass through originalServer from x-original-server header', async () => {
+      const testData = {
+        portalFormId: 'portal-original-server',
+        userId: 'user-123',
+      };
+
+      loadPortalFormStub.resolves({
+        success: true,
+        data: { success: true, formData: { id: 'portal-original-server' } },
+      });
+
+      await request(Server)
+        .post('/api/loadPortalForm')
+        .set('x-original-server', 'https://portal.example.com')
+        .send(testData)
+        .expect(200);
+
+      const [data, token, originalServer] = loadPortalFormStub.getCall(0).args;
+      expect(data).to.deep.equal({
+        portalFormId: 'portal-original-server',
+        userId: 'user-123',
+      });
+      expect(token).to.be.undefined;
+      expect(originalServer).to.equal('https://portal.example.com');
+    });
+
+    it('should handle token and originalServer together', async () => {
+      const testData = {
+        portalFormId: 'portal-combined',
+      };
+
+      loadPortalFormStub.resolves({
+        success: true,
+        data: { success: true, formData: { id: 'portal-combined' } },
+      });
+
+      await request(Server)
+        .post('/api/loadPortalForm')
+        .set('Authorization', 'Bearer combined-token-789')
+        .set('x-original-server', 'https://combined.example.com')
+        .send(testData)
+        .expect(200);
+
+      const [data, token, originalServer] = loadPortalFormStub.getCall(0).args;
+      expect(data).to.deep.equal({ portalFormId: 'portal-combined' });
+      expect(token).to.equal('combined-token-789');
+      expect(originalServer).to.equal('https://combined.example.com');
+    });
+
+    it('should handle ICM service error responses', async () => {
+      const testData = { portalFormId: 'invalid-portal-form' };
+
+      loadPortalFormStub.resolves({
+        success: false,
+        error: 'Portal form not found',
+        status: 404,
+      });
+
+      const response = await request(Server)
+        .post('/api/loadPortalForm')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(404);
+
+      expect(response.body).to.deep.equal({
+        error: 'Portal form not found',
+      });
+    });
+
+    it('should handle ICM service error with default status 500', async () => {
+      const testData = { portalFormId: 'error-portal-form' };
+
+      loadPortalFormStub.resolves({
+        success: false,
+        error: 'Internal portal form loading error',
+      });
+
+      const response = await request(Server)
+        .post('/api/loadPortalForm')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(500);
+
+      expect(response.body).to.deep.equal({
+        error: 'Internal portal form loading error',
+      });
+    });
+
+    it('should pass through all request body parameters', async () => {
+      const testData = {
+        portalFormId: 'portal-complex',
+        userId: 'user-complex',
+        options: {
+          includeHistory: true,
+          version: 'latest',
+          metadata: { source: 'portal', timestamp: '2023-01-01T00:00:00Z' },
+        },
+        filters: ['field1', 'field2'],
+        apiKey: 'api-key-123',
+      };
+
+      loadPortalFormStub.resolves({
+        success: true,
+        data: {
+          success: true,
+          formData: {
+            id: 'portal-complex',
+            history: [{ version: '1.0' }, { version: '2.0' }],
+            fields: { field1: 'value1', field2: 'value2' },
+          },
+        },
+      });
+
+      await request(Server)
+        .post('/api/loadPortalForm')
+        .send(testData)
+        .expect(200);
+
+      const [data] = loadPortalFormStub.getCall(0).args;
+      expect(data).to.deep.equal({
+        portalFormId: 'portal-complex',
+        userId: 'user-complex',
+        options: {
+          includeHistory: true,
+          version: 'latest',
+          metadata: { source: 'portal', timestamp: '2023-01-01T00:00:00Z' },
+        },
+        filters: ['field1', 'field2'],
+        apiKey: 'api-key-123',
+      });
+    });
+
+    it('should handle empty request body', async () => {
+      loadPortalFormStub.resolves({
+        success: false,
+        error: 'Request data is required',
+        status: 400,
+      });
+
+      const response = await request(Server)
+        .post('/api/loadPortalForm')
+        .send({})
+        .expect(400);
+
+      expect(response.status).to.equal(400);
+
+      if (loadPortalFormStub.called) {
+        const [data] = loadPortalFormStub.getCall(0).args;
+        expect(data).to.deep.equal({});
+      }
+    });
+
+    it('should handle Authorization header without Bearer prefix', async () => {
+      const testData = {
+        portalFormId: 'portal-no-bearer',
+      };
+
+      loadPortalFormStub.resolves({
+        success: true,
+        data: { success: true, formData: { id: 'portal-no-bearer' } },
+      });
+
+      await request(Server)
+        .post('/api/loadPortalForm')
+        .set('Authorization', 'direct-token-123')
+        .send(testData)
+        .expect(200);
+
+      const [, token] = loadPortalFormStub.getCall(0).args;
+      expect(token).to.equal('direct-token-123');
+    });
+
+    it('should handle complex nested data structures', async () => {
+      const testData = {
+        portalFormId: 'portal-nested',
+        configuration: {
+          display: {
+            theme: 'dark',
+            language: 'en',
+            features: {
+              autoSave: true,
+              validation: { strict: true, async: false },
+            },
+          },
+          data: {
+            preload: ['section1', 'section2'],
+            cache: { enabled: true, ttl: 300 },
+          },
+        },
+        metadata: {
+          requestId: 'req-789',
+          timestamp: '2024-01-01T00:00:00.000Z',
+          tags: ['portal', 'test', 'nested'],
+        },
+      };
+
+      loadPortalFormStub.resolves({
+        success: true,
+        data: {
+          success: true,
+          formData: { id: 'portal-nested', processedConfiguration: true },
+        },
+      });
+
+      await request(Server)
+        .post('/api/loadPortalForm')
+        .send(testData)
+        .expect(200);
+
+      const [data] = loadPortalFormStub.getCall(0).args;
+      expect(data).to.deep.equal({
+        portalFormId: 'portal-nested',
+        configuration: {
+          display: {
+            theme: 'dark',
+            language: 'en',
+            features: {
+              autoSave: true,
+              validation: { strict: true, async: false },
+            },
+          },
+          data: {
+            preload: ['section1', 'section2'],
+            cache: { enabled: true, ttl: 300 },
+          },
+        },
+        metadata: {
+          requestId: 'req-789',
+          timestamp: '2024-01-01T00:00:00.000Z',
+          tags: ['portal', 'test', 'nested'],
+        },
+      });
+    });
+
+    it('should handle ICMService exceptions in try-catch', async () => {
+      const testData = { portalFormId: 'exception-portal-form' };
+
+      loadPortalFormStub.rejects(new Error('Portal service unavailable'));
+
+      const response = await request(Server)
+        .post('/api/loadPortalForm')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(500);
+
+      expect(response.body).to.deep.equal({
+        error: 'Portal service unavailable',
+      });
+    });
+
+    it('should handle non-Error exceptions in try-catch', async () => {
+      const testData = { portalFormId: 'unknown-error-portal-form' };
+
+      loadPortalFormStub.rejects('Unknown portal error occurred');
+
+      const response = await request(Server)
+        .post('/api/loadPortalForm')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(500);
+
+      expect(response.body).to.deep.equal({
+        error: 'Internal server error',
+      });
+    });
+
+    it('should handle large payload data correctly', async () => {
+      const testData = {
+        portalFormId: 'portal-large-payload',
+        largeData: {
+          records: new Array(100).fill(null).map((_, i) => ({
+            id: i,
+            name: `Record ${i}`,
+            data: `Large data content for record ${i}`.repeat(10),
+          })),
+          metadata: {
+            totalSize: '1MB',
+            compressed: false,
+            encoding: 'utf-8',
+          },
+        },
+      };
+
+      loadPortalFormStub.resolves({
+        success: true,
+        data: {
+          success: true,
+          formData: { id: 'portal-large-payload', processed: true },
+        },
+      });
+
+      await request(Server)
+        .post('/api/loadPortalForm')
+        .send(testData)
+        .expect(200);
+
+      const [data] = loadPortalFormStub.getCall(0).args;
+      expect(data.portalFormId).to.equal('portal-large-payload');
+      expect(data.largeData.records).to.have.lengthOf(100);
+      expect(data.largeData.metadata.totalSize).to.equal('1MB');
+    });
+
+    it('should handle multiple header variations correctly', async () => {
+      const testData = { portalFormId: 'portal-headers' };
+
+      loadPortalFormStub.resolves({
+        success: true,
+        data: { success: true, formData: { id: 'portal-headers' } },
+      });
+
+      await request(Server)
+        .post('/api/loadPortalForm')
+        .set('Authorization', 'Bearer header-token')
+        .set('x-original-server', 'https://headers.example.com')
+        .set('content-type', 'application/json')
+        .set('x-request-id', 'req-123')
+        .send(testData)
+        .expect(200);
+
+      const [data, token, originalServer] = loadPortalFormStub.getCall(0).args;
+      expect(data.portalFormId).to.equal('portal-headers');
+      expect(token).to.equal('header-token');
+      expect(originalServer).to.equal('https://headers.example.com');
+    });
+  });
 });

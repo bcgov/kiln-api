@@ -42,6 +42,9 @@ router.post('/generateNewTemplate', (req, res) =>
 router.post('/generatePortalForm', (req, res) =>
   CommunicationsController.generatePortalForm(req, res)
 );
+router.post('/loadPortalForm', (req, res) =>
+  CommunicationsController.loadPortalForm(req, res)
+);
 
 // Kiln Renderer Routes
 router.get('/view', (req, res) => RendererController.viewForm(req, res));

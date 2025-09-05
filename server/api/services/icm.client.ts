@@ -276,4 +276,39 @@ export class ICMClient {
     }
   }
 
+  async loadPortalForm(
+    payload: any,
+    originalServer?: string
+  ): Promise<ICMJsonResponse> {
+    try {
+      const url = process.env.COMM_API_LOAD_PORTAL_FORM_ENDPOINT_URL;
+
+      if (!url) {
+        throw new Error(
+          'COMM_API_LOAD_PORTAL_FORM_ENDPOINT_URL environment variable is required'
+        );
+      }
+
+      const timeout = process.env.COMM_API_TIMEOUT
+        ? parseInt(process.env.COMM_API_TIMEOUT, 10)
+        : 30000;
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      if (originalServer) {
+        headers['X-Original-Server'] = originalServer;
+      }
+
+      const response = await axios.post(url, payload, {
+        headers,
+        timeout,
+      });
+
+      return this.createJsonResponse(response);
+    } catch (error) {
+      return this.handleJsonError(error, 'loadPortalForm');
+    }
+  }
 }
