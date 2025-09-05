@@ -102,6 +102,32 @@ interface LoadPortalFormResult {
   status?: number;
 }
 
+interface SubmitButtonActionPayload {
+  tokenId: string;
+  savedForm: string;
+  config: any;
+}
+
+interface SubmitButtonActionRequest {
+  tokenId: string;
+  savedForm: string;
+  config: any;
+}
+
+interface SaveICMDataResult {
+  success: boolean;
+  data?: any;
+  error?: string;
+  status?: number;
+}
+
+interface SubmitButtonActionResult {
+  success: boolean;
+  data?: any;
+  error?: string;
+  status?: number;
+}
+
 export class ICMService {
   private icmClient: ICMClient;
 
@@ -448,6 +474,36 @@ export class ICMService {
       );
     } catch (error) {
       return this.handleError(error, 'Failed to load portal form');
+    }
+  }
+
+  async submitForButtonAction(
+    data: SubmitButtonActionRequest
+  ): Promise<SubmitButtonActionResult> {
+    try {
+      const { tokenId, savedForm, config } = data;
+
+      if (!tokenId || !savedForm || !config) {
+        return {
+          success: false,
+          error: 'Missing required fields: tokenId, savedForm, or config',
+          status: 400,
+        };
+      }
+
+      const payload: SubmitButtonActionPayload = {
+        tokenId,
+        savedForm,
+        config,
+      };
+
+      const response = await this.icmClient.submitForButtonAction(payload);
+      return this.handleResponse(
+        response,
+        'Error submitting button action. Please try again.'
+      );
+    } catch (error) {
+      return this.handleError(error, 'Failed to submit button action');
     }
   }
 }
