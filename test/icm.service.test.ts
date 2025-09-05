@@ -1413,4 +1413,213 @@ describe('ICMService', () => {
       expect(calledPayload.token).to.be.undefined;
     });
   });
+
+  describe('submitForPortalAction', () => {
+    it('should successfully submit portal action with all required fields', async () => {
+      const testData = {
+        tokenId: 'token-123',
+        savedForm: 'form-data-json',
+        config: { action: 'submit', workflow: 'approval' },
+      };
+
+      const mockResponseData = {
+        success: true,
+        actionId: 'action-456',
+        status: 'submitted',
+      };
+
+      const mockResponse = {
+        ok: true,
+        json: sinon.stub().resolves(mockResponseData),
+      };
+
+      icmClientStub.submitForPortalAction.resolves(mockResponse as any);
+
+      const result = await icmService.submitForPortalAction(testData);
+
+      expect(result.success).to.be.true;
+      expect(result.data).to.deep.equal(mockResponseData);
+      expect(icmClientStub.submitForPortalAction.calledOnce).to.be.true;
+
+      const calledPayload = icmClientStub.submitForPortalAction.getCall(0).args[0];
+      expect(calledPayload).to.deep.equal({
+        tokenId: 'token-123',
+        savedForm: 'form-data-json',
+        config: { action: 'submit', workflow: 'approval' },
+      });
+    });
+
+    it('should return error when tokenId is missing', async () => {
+      const testData = {
+        savedForm: 'form-data-json',
+        config: { action: 'submit' },
+      };
+
+      const result = await icmService.submitForPortalAction(testData as any);
+
+      expect(result.success).to.be.false;
+      expect(result.error).to.equal('Missing required fields: tokenId, savedForm, or config');
+      expect(result.status).to.equal(400);
+      expect(icmClientStub.submitForPortalAction.called).to.be.false;
+    });
+
+    it('should return error when savedForm is missing', async () => {
+      const testData = {
+        tokenId: 'token-123',
+        config: { action: 'submit' },
+      };
+
+      const result = await icmService.submitForPortalAction(testData as any);
+
+      expect(result.success).to.be.false;
+      expect(result.error).to.equal('Missing required fields: tokenId, savedForm, or config');
+      expect(result.status).to.equal(400);
+      expect(icmClientStub.submitForPortalAction.called).to.be.false;
+    });
+
+    it('should return error when config is missing', async () => {
+      const testData = {
+        tokenId: 'token-123',
+        savedForm: 'form-data-json',
+      };
+
+      const result = await icmService.submitForPortalAction(testData as any);
+
+      expect(result.success).to.be.false;
+      expect(result.error).to.equal('Missing required fields: tokenId, savedForm, or config');
+      expect(result.status).to.equal(400);
+      expect(icmClientStub.submitForPortalAction.called).to.be.false;
+    });
+
+    it('should handle ICM client API error responses', async () => {
+      const testData = {
+        tokenId: 'invalid-token',
+        savedForm: 'form-data-json',
+        config: { action: 'submit' },
+      };
+
+      const mockErrorResponse = {
+        error: 'Unauthorized',
+        message: 'Invalid token provided',
+      };
+
+      const mockResponse = {
+        ok: false,
+        status: 401,
+        json: sinon.stub().resolves(mockErrorResponse),
+      };
+
+      icmClientStub.submitForPortalAction.resolves(mockResponse as any);
+
+      const result = await icmService.submitForPortalAction(testData);
+
+      expect(result.success).to.be.false;
+      expect(result.error).to.equal('Unauthorized');
+      expect(result.status).to.equal(401);
+      expect(icmClientStub.submitForPortalAction.calledOnce).to.be.true;
+    });
+
+    it('should handle ICM client API error responses with default error message', async () => {
+      const testData = {
+        tokenId: 'error-token',
+        savedForm: 'form-data-json',
+        config: { action: 'submit' },
+      };
+
+      const mockResponse = {
+        ok: false,
+        status: 500,
+        json: sinon.stub().resolves({}),
+      };
+
+      icmClientStub.submitForPortalAction.resolves(mockResponse as any);
+
+      const result = await icmService.submitForPortalAction(testData);
+
+      expect(result.success).to.be.false;
+      expect(result.error).to.equal('Error submitting button action. Please try again.');
+      expect(result.status).to.equal(500);
+      expect(icmClientStub.submitForPortalAction.calledOnce).to.be.true;
+    });
+
+    it('should handle ICM client exceptions', async () => {
+      const testData = {
+        tokenId: 'exception-token',
+        savedForm: 'form-data-json',
+        config: { action: 'submit' },
+      };
+
+      const error = new Error('Network connection failed');
+      icmClientStub.submitForPortalAction.rejects(error);
+
+      const result = await icmService.submitForPortalAction(testData);
+
+      expect(result.success).to.be.false;
+      expect(result.error).to.equal('Failed to submit button action: Network connection failed');
+      expect(result.status).to.equal(500);
+      expect(icmClientStub.submitForPortalAction.calledOnce).to.be.true;
+    });
+
+    it('should handle unknown errors', async () => {
+      const testData = {
+        tokenId: 'unknown-error-token',
+        savedForm: 'form-data-json',
+        config: { action: 'submit' },
+      };
+
+      icmClientStub.submitForPortalAction.rejects(new Error('Unknown error occurred'));
+
+      const result = await icmService.submitForPortalAction(testData);
+
+      expect(result.success).to.be.false;
+      expect(result.error).to.equal('Failed to submit button action: Unknown error occurred');
+      expect(result.status).to.equal(500);
+      expect(icmClientStub.submitForPortalAction.calledOnce).to.be.true;
+    });
+
+    it('should pass through complex config structures', async () => {
+      const testData = {
+        tokenId: 'complex-token',
+        savedForm: JSON.stringify({
+          formData: { field1: 'value1', field2: 'value2' },
+          metadata: { version: '2.0', lastModified: '2023-01-01' }
+        }),
+        config: {
+          action: 'submit',
+          options: {
+            validate: true,
+            notify: ['admin@example.com'],
+            workflow: 'approval',
+            priority: 'high'
+          },
+          routing: {
+            successUrl: '/success',
+            errorUrl: '/error'
+          }
+        },
+      };
+
+      const mockResponseData = {
+        success: true,
+        actionId: 'complex-action-789',
+        workflowId: 'workflow-123',
+      };
+
+      const mockResponse = {
+        ok: true,
+        json: sinon.stub().resolves(mockResponseData),
+      };
+
+      icmClientStub.submitForPortalAction.resolves(mockResponse as any);
+
+      const result = await icmService.submitForPortalAction(testData);
+
+      expect(result.success).to.be.true;
+      expect(result.data).to.deep.equal(mockResponseData);
+      expect(icmClientStub.submitForPortalAction.calledOnce).to.be.true;
+
+      const calledPayload = icmClientStub.submitForPortalAction.getCall(0).args[0];
+      expect(calledPayload).to.deep.equal(testData);
+    });
+  });
 });
