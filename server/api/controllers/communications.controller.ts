@@ -231,10 +231,6 @@ export class CommunicationsController {
   generatePDFFromJson(req: Request, res: Response): void {
     res.json({ endpoint: 'generatePDFFromJson', payload: req.body });
   }
-
-  generateNewTemplate(req: Request, res: Response): void {
-    res.json({ endpoint: 'generateNewTemplate', payload: req.body });
-  }
 }
 
 export default new CommunicationsController();

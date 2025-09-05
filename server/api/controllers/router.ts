@@ -36,9 +36,6 @@ router.post('/pdfRender/:pdfTemplateId', (req, res) =>
 router.post('/generatePDFFromJson', (req, res) =>
   CommunicationsController.generatePDFFromJson(req, res)
 );
-router.post('/generateNewTemplate', (req, res) =>
-  CommunicationsController.generateNewTemplate(req, res)
-);
 router.post('/generatePortalForm', (req, res) =>
   CommunicationsController.generatePortalForm(req, res)
 );
