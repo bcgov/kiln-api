@@ -207,20 +207,30 @@ export class CommunicationsController {
   }
 
   async submitForPortalAction(req: Request, res: Response): Promise<void> {
-    const { tokenId, savedForm, config } = req.body;
+    try {
+      const { tokenId, savedForm, config } = req.body;
 
-    // TODO: Implement authentication/authorization when available
+      // TODO: Implement authentication/authorization when available
 
-    const result = await ICMService.submitForPortalAction({
-      tokenId,
-      savedForm,
-      config,
-    });
+      const result = await ICMService.submitForPortalAction({
+        tokenId,
+        savedForm,
+        config,
+      });
 
-    if (result.success) {
-      res.status(200).json({ message: 'success' });
-    } else {
-      res.status(result.status || 500).json({ error: result.error });
+      if (result.success) {
+        res.status(200).json(result.data);
+      } else {
+        res.status(result.status || 500).json({ error: result.error });
+      }
+    } catch (error) {
+      let errorMessage = 'Internal server error';
+      if (error instanceof Error && error.message) {
+        errorMessage = error.message;
+      }
+      res.status(500).json({
+        error: errorMessage,
+      });
     }
   }
 }
