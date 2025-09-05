@@ -2,10 +2,6 @@ import { Request, Response } from 'express';
 import ICMService from '../services/icm.service';
 
 export class CommunicationsController {
-  saveData(req: Request, res: Response): void {
-    res.json({ endpoint: 'saveForm', payload: req.body });
-  }
-
   async generateForm(req: Request, res: Response): Promise<void> {
     const originalServer = req.headers['x-original-server'] as string;
     const { token, username, ...params } = req.body;

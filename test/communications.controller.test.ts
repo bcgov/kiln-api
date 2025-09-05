@@ -28,18 +28,6 @@ describe('Communications Controller', () => {
     sinon.restore();
   });
 
-  // Test sample of placeholder endpoints to verify basic connectivity
-  it('should respond to POST /api/saveForm', () =>
-    request(Server)
-      .post('/api/saveForm')
-      .send({ test: true })
-      .expect('Content-Type', /json/)
-      .expect(200)
-      .then((res) => {
-        expect(res.body).to.have.property('endpoint', 'saveForm');
-        expect(res.body.payload).to.have.property('test', true);
-      }));
-
   describe('generateForm endpoint', () => {
     it('should successfully generate form with username', async () => {
       const testData = {

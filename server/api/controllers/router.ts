@@ -12,9 +12,6 @@ const router = express.Router();
 router.post('/saveICMData', (req, res) =>
   CommunicationsController.saveICMData(req, res)
 );
-router.post('/saveForm', (req, res) =>
-  CommunicationsController.saveData(req, res)
-);
 router.post('/generateForm', (req, res) =>
   CommunicationsController.generateForm(req, res)
 );
