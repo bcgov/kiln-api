@@ -210,6 +210,24 @@ export class CommunicationsController {
     }
   }
 
+  async submitForButtonAction(req: Request, res: Response): Promise<void> {
+    const { tokenId, savedForm, config } = req.body;
+
+    // TODO: Implement authentication/authorization when available
+
+    const result = await ICMService.submitForButtonAction({
+      tokenId,
+      savedForm,
+      config,
+    });
+
+    if (result.success) {
+      res.status(200).json({ message: 'success' });
+    } else {
+      res.status(result.status || 500).json({ error: result.error });
+    }
+  }
+
   generatePDFFromJson(req: Request, res: Response): void {
     res.json({ endpoint: 'generatePDFFromJson', payload: req.body });
   }
