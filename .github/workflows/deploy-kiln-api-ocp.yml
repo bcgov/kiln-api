@@ -19,58 +19,67 @@ env:
   OPENSHIFT_TOKEN: ${{ secrets.OPENSHIFT_TOKEN }}
 
 jobs:
+
   deploy:
     runs-on: ubuntu-latest
     environment: production
 
     steps:
-
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Set target namespace
-        id: setns
+        
+      - name: Set branch and environment variables
+        id: set_vars
         run: |
-          if [[ "${GITHUB_REF}" == "refs/heads/main" ]]; then
-            echo "namespace=${{ env.PROD_NAMESPACE }}" >> $GITHUB_OUTPUT
-          elif [[ "${GITHUB_REF}" == "refs/heads/test" ]]; then
-            echo "namespace=${{ env.TEST_NAMESPACE }}" >> $GITHUB_OUTPUT
-          else
-            echo "namespace=${{ env.DEV_NAMESPACE }}" >> $GITHUB_OUTPUT
-          fi
+            BRANCH="${GITHUB_REF##*/}"
+            if [[ "$BRANCH" == "main" ]]; then
+            ENV_NAMESPACE="tools"
+            elif [[ "$BRANCH" == "dev" ]]; then
+            ENV_NAMESPACE="dev"
+            elif [[ "$BRANCH" == "test" ]]; then
+            ENV_NAMESPACE="test"
+            else
+            ENV_NAMESPACE="dev"
+            fi
+            echo "namespace=$ENV_NAMESPACE" >> $GITHUB_OUTPUT
 
-    # Optionally: You could fetch the image tag from previous workflow run or artifact. For now, defaulting to 'latest'.
-    # If you want to use the short SHA tag, you could set IMAGE_TAG: ${{ github.sha }}
+            if [[ "$BRANCH" == "dev" ]]; then
+            RELEASE_NAME="kiln-api-dev"
+            elif [[ "$BRANCH" == "test" ]]; then
+            RELEASE_NAME="kiln-api-test"
+            else
+            RELEASE_NAME="kiln-v2"
+            fi
+            echo "release_name=$RELEASE_NAME" >> $GITHUB_OUTPUT
 
-      - name: Set up kubectl
-        uses: azure/setup-kubectl@v3
-        with:
-          version: 'latest'
-
-      - name: Install Helm
-        uses: azure/setup-helm@v4
-        with:
-          version: 'latest'
-    
-      - name: Install oc
+      - name: Install oc CLI
         uses: redhat-actions/oc-installer@v1
         with:
             oc_version: '4.6'
 
-      # Set environment variable for namespace which can be retrieved
-      # from commands `oc whoami --show-server` and `oc whoami -t`
-      - name: Log in to OpenShift
+      - name: Authenticate with OpenShift
         uses: redhat-actions/oc-login@v1
         with:
-          openshift_server_url: ${{ env.OPENSHIFT_SERVER }}
-          openshift_token: ${{ env.OPENSHIFT_TOKEN }}
-          insecure_skip_tls_verify: true
-          namespace: ${{ env.LICENSE_PLATE }}-${{ env.PROD_NAMESPACE }}
-        if: ${{ env.OPENSHIFT_SERVER != '' && env.OPENSHIFT_TOKEN != '' }}
+            openshift_server_url: ${{ env.OPENSHIFT_SERVER }}
+            namespace: ${{ steps.set_vars.outputs.namespace }}
+            openshift_token: ${{ env.OPENSHIFT_TOKEN }}
+            insecure_skip_tls_verify: true
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+            version: 'latest'
 
       - name: Deploy with Helm
         run: |
-          helm upgrade --install kiln-api helm \
-            --namespace ${{ steps.setns.outputs.namespace }} \
-            -f helm/values.yaml
+            helm upgrade --install "${{ steps.set_vars.outputs.release_name }}" ./helm \
+            --namespace "${{ steps.set_vars.outputs.namespace }}" \
+            --set image.repository=${{ env.IMAGE_REPO }} \
+            --set image.tag=${{ env.IMAGE_TAG }} \
+            --set fullnameOverride="${{ steps.set_vars.outputs.release_name }}"
 
+      - name: Trigger OpenShift Rollout
+        run: |
+            oc rollout restart deployment/${{ steps.set_vars.outputs.release_name }}
+
+  
