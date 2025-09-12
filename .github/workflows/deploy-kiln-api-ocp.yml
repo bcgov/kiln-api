@@ -51,6 +51,11 @@ jobs:
         uses: azure/setup-helm@v4
         with:
           version: 'latest'
+    
+      - name: Install oc
+        uses: redhat-actions/oc-installer@v1
+        with:
+            oc_version: '4.6'
 
       # Set environment variable for namespace which can be retrieved
       # from commands `oc whoami --show-server` and `oc whoami -t`
@@ -65,7 +70,7 @@ jobs:
 
       - name: Deploy with Helm
         run: |
-          helm upgrade --install kiln-api ./helm \
+          helm upgrade --install kiln-api helm \
             --namespace ${{ steps.setns.outputs.namespace }} \
             -f helm/values.yaml
 
