@@ -61,7 +61,7 @@ jobs:
           openshift_token: ${{ secrets.OPENSHIFT_TOKEN }}
           insecure_skip_tls_verify: true
           namespace: ${{ env.LICENSE_PLATE }}-${{ env.PROD_NAMESPACE }}
-        if: ${{ secrets.OPENSHIFT_SERVER != '' && secrets.OPENSHIFT_TOKEN != '' }}
+        if: ${{ env.OPENSHIFT_SERVER != '' && env.OPENSHIFT_TOKEN != '' }}
 
       - name: Deploy with Helm
         run: |
