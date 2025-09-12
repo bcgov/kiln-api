@@ -123,11 +123,11 @@ spec:
               value: http://{{ include "kilnAPI.fullname" . }}-client-svc:{{ .Values.kilnAPI.service.port }}/authn/callback
             - name: VAULT_CONFIG_PATH
               value: {{  .Values.global.vault.containerPath | quote }}
-            - name: SESSION_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.kilnAPI.session.secretName }}
-                  key: {{ .Values.kilnAPI.session.secretKey }}
+            # - name: SESSION_SECRET
+            #   valueFrom:
+            #     secretKeyRef:
+            #       name: {{ .Values.kilnAPI.session.secretName }}
+            #       key: {{ .Values.kilnAPI.session.secretKey }}
           envFrom:
             {{- toYaml .Values.kilnAPI.envFrom | nindent 12 }}
           {{- with .Values.kilnAPI.volumeMounts }}
