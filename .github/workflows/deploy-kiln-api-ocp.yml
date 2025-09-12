@@ -15,6 +15,8 @@ env:
   TEST_NAMESPACE: test
   PROD_NAMESPACE: tools # To be changed to prod when ready
   TOOLS_NAMESPACE: tools
+  OPENSHIFT_SERVER: ${{ secrets.OPENSHIFT_SERVER }}
+  OPENSHIFT_TOKEN: ${{ secrets.OPENSHIFT_TOKEN }}
 
 jobs:
   deploy:
