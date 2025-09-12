@@ -73,7 +73,7 @@ jobs:
       - name: Deploy with Helm
         run: |
             helm upgrade --install "${{ steps.set_vars.outputs.release_name }}" ./helm \
-            --namespace "${{ steps.set_vars.outputs.namespace }}" \
+            --namespace "${{ env.LICENSE_PLATE }}-${{ steps.set_vars.outputs.namespace }}" \
             --set image.repository=${{ env.IMAGE_REPO }} \
             --set image.tag=${{ env.IMAGE_TAG }} \
             --set fullnameOverride="${{ steps.set_vars.outputs.release_name }}"
