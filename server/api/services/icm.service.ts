@@ -143,8 +143,8 @@ export class ICMService {
       error instanceof Error
         ? error.message
         : typeof error === 'string'
-        ? error
-        : 'Unknown error occurred';
+          ? error
+          : 'Unknown error occurred';
 
     L.error(errorMessage, error);
 
@@ -406,7 +406,7 @@ export class ICMService {
   }
 
   async generatePortalForm(
-    data: { username?: string; originalServer?: string; [k: string]: any },
+    data: { username?: string; originalServer?: string;[k: string]: any },
     token?: string
   ): Promise<{
     success: boolean;
@@ -506,6 +506,34 @@ export class ICMService {
       return this.handleError(error, 'Failed to submit button action');
     }
   }
+
+  async generateNewTemplate(
+    data: Record<string, unknown>,
+    originalServer?: string
+  ): Promise<ICMDataResult> {
+    try {
+
+      // check required fields
+      const attachmentId = (data['attachmentId'] ?? data['AttachmentId']) as string | undefined;
+      const area = (data['Area'] ?? data['area']) as string | undefined;
+      const formId = (data['FormId'] ?? data['formId']) as string | undefined;
+
+      if (!attachmentId?.trim()) return { success: false, status: 400, error: 'attachmentId is required' };
+      if (!area?.trim()) return { success: false, status: 400, error: 'Area is required' };
+      if (!formId?.trim()) return { success: false, status: 400, error: 'FormId (or formId) is required' };
+
+      // call CommLayer
+      const response = await this.icmClient.generateNewTemplate(data, originalServer);
+      
+      return this.handleResponse(
+        response,
+        'The form cannot be generated.'
+      );
+    } catch (error) {
+      return this.handleError(error, 'Failed to generate new template');
+    }
+  }
+
 }
 
 export default new ICMService();

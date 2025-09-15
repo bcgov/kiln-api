@@ -233,6 +233,35 @@ export class CommunicationsController {
       });
     }
   }
+
+  async generateNewTemplate(req: Request, res: Response): Promise<void> {
+    try {
+      const requestData = req.body;
+
+      const authHeader = req.headers.authorization;
+      const token = requestData?.token ||
+        (authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : authHeader);
+
+      const originalServer = req.headers['x-original-server'] as string | undefined;
+
+      const result = await ICMService.generateNewTemplate({
+        ...requestData,
+        ...(originalServer ? { originalServer } : {}),
+        ...(token ? { token } : {}),
+      });
+
+      if (result.success) {
+        res.status(200).json(result.data);
+      } else {
+        res.status(result.status || 400).json({ error: result.error });
+      }
+    } catch (error) {
+      let errorMessage = 'Internal server error';
+      if (error instanceof Error && error.message) errorMessage = error.message;
+      res.status(500).json({ error: errorMessage });
+    }
+  }
+
 }
 
 export default new CommunicationsController();

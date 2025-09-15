@@ -1745,4 +1745,168 @@ describe('Communications Controller', () => {
       expect(data).to.deep.equal(testData);
     });
   });
+
+  describe('generateNewTemplate endpoint', () => {
+    let generateNewTemplateStub: sinon.SinonStub;
+
+    beforeEach(() => {
+      generateNewTemplateStub = sinon.stub(ICMService, 'generateNewTemplate');
+    });
+
+    afterEach(() => {
+      generateNewTemplateStub.restore();
+    });
+
+    it('should successfully generate new template (basic payload)', async () => {
+      const testData = {
+        attachmentId: '1-4ZYB80E',
+        formId: 'CF8787',
+        area: 'Service Request',
+        CaseId: '1-4ZYB34V',
+        ContactId: '1-ABCD',
+        username: 'DOKULSKI',
+      };
+
+      generateNewTemplateStub.resolves({
+        success: true,
+        data: { errorCode: 0, message: 'Successfully generated the form' },
+      });
+
+      const response = await request(Server)
+        .post('/api/generateNewTemplate')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(200);
+
+      expect(response.body).to.deep.equal({
+        errorCode: 0,
+        message: 'Successfully generated the form',
+      });
+
+      expect(generateNewTemplateStub.calledOnce).to.be.true;
+      const [dataArg] = generateNewTemplateStub.getCall(0).args;
+      expect(dataArg).to.deep.equal({
+        attachmentId: '1-4ZYB80E',
+        formId: 'CF8787',
+        area: 'Service Request',
+        CaseId: '1-4ZYB34V',
+        ContactId: '1-ABCD',
+        username: 'DOKULSKI'
+      });
+    });
+
+    it('should pass through x-original-server header onto request to service', async () => {
+      const testData = {
+        attachmentId: '1-4ZYB80E',
+        formId: 'CF8787',
+        area: 'Service Request',
+      };
+
+      generateNewTemplateStub.resolves({
+        success: true,
+        data: { errorCode: 0, message: 'ok' },
+      });
+
+      await request(Server)
+        .post('/api/generateNewTemplate')
+        .set('x-original-server', 'https://icm-dev.internal')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(200);
+
+      const [dataArg] = generateNewTemplateStub.getCall(0).args;
+      expect(dataArg).to.deep.equal({
+        attachmentId: '1-4ZYB80E',
+        formId: 'CF8787',
+        area: 'Service Request',
+        originalServer: 'https://icm-dev.internal',
+      });
+    });
+
+    it('should pass through all request body parameters untouched', async () => {
+      const testData = {
+        attachmentId: 'ATT-999',
+        formId: 'FORM-42',
+        area: 'Case',
+        CaseId: 'CASE-100',
+        ContactId: 'CONT-200',
+        SRId: 'SR-300',
+        extra: { a: 1, b: 'two' },
+        flags: ['x', 'y'],
+      };
+
+      generateNewTemplateStub.resolves({
+        success: true,
+        data: { errorCode: 0, message: 'ok' },
+      });
+
+      await request(Server)
+        .post('/api/generateNewTemplate')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(200);
+
+      const [dataArg] = generateNewTemplateStub.getCall(0).args;
+      expect(dataArg).to.deep.equal({
+        attachmentId: 'ATT-999',
+        formId: 'FORM-42',
+        area: 'Case',
+        CaseId: 'CASE-100',
+        ContactId: 'CONT-200',
+        SRId: 'SR-300',
+        extra: { a: 1, b: 'two' },
+        flags: ['x', 'y']
+      });
+    });
+
+    it('should return service error with provided status code', async () => {
+      const testData = {
+        attachmentId: 'bad',
+        formId: 'CF8787',
+        area: 'Service Request',
+      };
+
+      generateNewTemplateStub.resolves({
+        success: false,
+        status: 400,
+        error: 'The form cannot be generated.',
+      });
+
+      const response = await request(Server)
+        .post('/api/generateNewTemplate')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(400);
+
+      expect(response.body).to.deep.equal({ error: 'The form cannot be generated.' });
+    });
+
+    it('should handle ICMService exceptions via try-catch and return 500 with message', async () => {
+      const testData = { attachmentId: 'ATT-1', formId: 'FORM-1', area: 'SR' };
+
+      generateNewTemplateStub.rejects(new Error('Network connection failed'));
+
+      const response = await request(Server)
+        .post('/api/generateNewTemplate')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(500);
+
+      expect(response.body).to.deep.equal({ error: 'Network connection failed' });
+    });
+
+    it('should handle non-Error thrown values as 500 Internal server error', async () => {
+      const testData = { attachmentId: 'ATT-1', formId: 'FORM-1', area: 'SR' };
+
+      generateNewTemplateStub.rejects('Unknown thrown value');
+
+      const response = await request(Server)
+        .post('/api/generateNewTemplate')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(500);
+
+      expect(response.body).to.deep.equal({ error: 'Internal server error' });
+    });
+  });
 });
