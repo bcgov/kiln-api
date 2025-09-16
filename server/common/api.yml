@@ -323,3 +323,114 @@ paths:
           description: Unauthorized
         500:
           description: Internal server error
+
+  /loadBoundForm:
+    post:
+      tags:
+        - Communications Layer
+        - Kiln Interface
+      summary: Load form data with binding applied
+      description: Loads form data and applies data binding logic in the backend for better separation of concerns
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: formRequest
+          required: true
+          schema:
+            type: object
+            properties:
+              attachmentId:
+                type: string
+                description: The attachment ID for the form
+              username:
+                type: string
+                description: Username for authentication
+              token:
+                type: string
+                description: Authentication token
+              isPortalIntegrated:
+                type: boolean
+                description: Whether to use portal integration
+            required:
+              - attachmentId
+      responses:
+        200:
+          description: Form data loaded and bound successfully
+          schema:
+            type: object
+            properties:
+              form_definition:
+                type: object
+                description: Form definition with data binding applied
+              data:
+                type: object
+                description: Original saved data
+              metadata:
+                type: object
+                description: Form metadata
+              bound:
+                type: boolean
+                description: Flag indicating data has been bound
+        400:
+          description: Bad request - missing required parameters
+        401:
+          description: Unauthorized - authentication required
+        500:
+          description: Internal server error
+
+  /bindPreviewForm:
+    post:
+      tags:
+        - Communications Layer
+        - Kiln Interface
+      summary: Bind data to form definition for preview
+      description: Applies data binding to form definition and data for preview functionality in kiln-v2
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: requestBody
+          required: true
+          schema:
+            type: object
+            properties:
+              formData:
+                type: object
+                description: Form data containing form_definition, data, and metadata
+                properties:
+                  form_definition:
+                    type: object
+                    description: The form definition JSON
+                  data:
+                    description: The saved form data to bind
+                  metadata:
+                    description: Form metadata
+            required:
+              - formData
+      responses:
+        200:
+          description: Form data bound successfully
+          schema:
+            type: object
+            properties:
+              form_definition:
+                type: object
+                description: Form definition with data binding applied
+              data:
+                type: object
+                description: Original saved data
+              metadata:
+                type: object
+                description: Form metadata
+              bound:
+                type: boolean
+                description: Flag indicating data has been bound
+        400:
+          description: Bad request - missing formData parameter
+        500:
+          description: Internal server error
