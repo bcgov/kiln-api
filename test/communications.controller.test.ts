@@ -388,7 +388,7 @@ describe('Communications Controller', () => {
     });
   });
 
-  describe('clearICMLockedFlag endpoint', () => {
+  describe('unlockICMData endpoint', () => {
     it('should successfully clear ICM locked flag with username', async () => {
       const testData = {
         username: 'testuser',
@@ -402,7 +402,7 @@ describe('Communications Controller', () => {
       });
 
       const response = await request(Server)
-        .post('/api/clearICMLockedFlag')
+        .post('/api/unlockICMData')
         .send(testData)
         .expect('Content-Type', /json/)
         .expect(200);
@@ -435,7 +435,7 @@ describe('Communications Controller', () => {
       });
 
       const response = await request(Server)
-        .post('/api/clearICMLockedFlag')
+        .post('/api/unlockICMData')
         .set('Authorization', 'Bearer test-token-456')
         .send(testData)
         .expect('Content-Type', /json/)
@@ -468,7 +468,7 @@ describe('Communications Controller', () => {
       });
 
       const response = await request(Server)
-        .post('/api/clearICMLockedFlag')
+        .post('/api/unlockICMData')
         .send(testData)
         .expect('Content-Type', /json/)
         .expect(200);
@@ -498,7 +498,7 @@ describe('Communications Controller', () => {
       });
 
       const response = await request(Server)
-        .post('/api/clearICMLockedFlag')
+        .post('/api/unlockICMData')
         .send(testData)
         .expect('Content-Type', /json/)
         .expect(403);
@@ -521,7 +521,7 @@ describe('Communications Controller', () => {
       });
 
       const response = await request(Server)
-        .post('/api/clearICMLockedFlag')
+        .post('/api/unlockICMData')
         .send(testData)
         .expect('Content-Type', /json/)
         .expect(500);
@@ -1704,7 +1704,7 @@ describe('Communications Controller', () => {
         tokenId: 'complex-token',
         savedForm: JSON.stringify({
           formData: { field1: 'value1', field2: 'value2' },
-          metadata: { version: '2.0', lastModified: '2023-01-01' }
+          metadata: { version: '2.0', lastModified: '2023-01-01' },
         }),
         config: {
           action: 'submit',
@@ -1712,12 +1712,12 @@ describe('Communications Controller', () => {
             validate: true,
             notify: ['admin@example.com'],
             workflow: 'approval',
-            priority: 'high'
+            priority: 'high',
           },
           routing: {
             successUrl: '/success',
-            errorUrl: '/error'
-          }
+            errorUrl: '/error',
+          },
         },
       };
 
@@ -1763,8 +1763,8 @@ describe('Communications Controller', () => {
       };
 
       const boundFormData = {
-        form_definition: { 
-          elements: [{ uuid: 'field1', type: 'text', value: 'test value' }] 
+        form_definition: {
+          elements: [{ uuid: 'field1', type: 'text', value: 'test value' }],
         },
         data: { field1: 'test value' },
         metadata: { attachmentId: 'test-attachment-123' },
@@ -1804,14 +1804,18 @@ describe('Communications Controller', () => {
       };
 
       const mockPortalData = {
-        form_definition: { elements: [{ uuid: 'portalField', type: 'select' }] },
+        form_definition: {
+          elements: [{ uuid: 'portalField', type: 'select' }],
+        },
         data: { portalField: 'portal value' },
         metadata: { source: 'portal' },
       };
 
       const boundPortalData = {
         form_definition: {
-          elements: [{ uuid: 'portalField', type: 'select', value: 'portal value' }]
+          elements: [
+            { uuid: 'portalField', type: 'select', value: 'portal value' },
+          ],
         },
         data: { portalField: 'portal value' },
         metadata: { source: 'portal' },
@@ -1833,8 +1837,11 @@ describe('Communications Controller', () => {
       expect(loadPortalFormStub.calledOnce).to.be.true;
       expect(bindFormDataStub.calledOnce).to.be.true;
 
-      const [portalData, token, originalServer] = loadPortalFormStub.getCall(0).args;
-      expect(portalData).to.deep.equal({ attachmentId: 'portal-attachment-456' });
+      const [portalData, token, originalServer] =
+        loadPortalFormStub.getCall(0).args;
+      expect(portalData).to.deep.equal({
+        attachmentId: 'portal-attachment-456',
+      });
       expect(token).to.equal('portal-token-123');
       expect(originalServer).to.be.undefined;
     });
@@ -1882,7 +1889,9 @@ describe('Communications Controller', () => {
         .expect('Content-Type', /json/)
         .expect(403);
 
-      expect(response.body).to.deep.equal({ error: 'Portal form access denied' });
+      expect(response.body).to.deep.equal({
+        error: 'Portal form access denied',
+      });
 
       expect(loadPortalFormStub.calledOnce).to.be.true;
       expect(bindFormDataStub.called).to.be.false;
@@ -1938,7 +1947,9 @@ describe('Communications Controller', () => {
         .expect(200);
 
       const [icmData] = loadICMDataStub.getCall(0).args;
-      expect(icmData.originalServer).to.equal('https://test-server.example.com');
+      expect(icmData.originalServer).to.equal(
+        'https://test-server.example.com'
+      );
     });
   });
 });
