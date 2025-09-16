@@ -206,6 +206,71 @@ export class CommunicationsController {
     }
   }
 
+  async loadBoundForm(req: Request, res: Response): Promise<void> {
+    try {
+      const originalServer = req.headers['x-original-server'] as string;
+      const { token, username, isPortalIntegrated, ...params } = req.body;
+
+      const authHeader = req.headers.authorization;
+      const authToken =
+        token ||
+        (authHeader?.startsWith('Bearer ')
+          ? authHeader.substring(7)
+          : authHeader);
+
+      let result;
+      if (isPortalIntegrated) {
+        result = await ICMService.loadPortalForm(
+          { ...params },
+          authToken,
+          originalServer
+        );
+      } else {
+        result = await ICMService.loadICMData(
+          { ...params, username, originalServer },
+          authToken
+        );
+      }
+
+      if (result.success) {
+        const boundData = await ICMService.bindFormData(result.data);
+        res.status(200).json(boundData);
+      } else {
+        res.status(result.status || 500).json({ error: result.error });
+      }
+    } catch (error) {
+      let errorMessage = 'Internal server error';
+      if (error instanceof Error && error.message) {
+        errorMessage = error.message;
+      }
+      res.status(500).json({
+        error: errorMessage,
+      });
+    }
+  }
+
+  async bindPreviewForm(req: Request, res: Response): Promise<void> {
+    try {
+      const { formData } = req.body;
+
+      if (!formData) {
+        res.status(400).json({ error: 'Form data is required' });
+        return;
+      }
+
+      const boundData = await ICMService.bindFormData(formData);
+      res.status(200).json(boundData);
+    } catch (error) {
+      let errorMessage = 'Internal server error';
+      if (error instanceof Error && error.message) {
+        errorMessage = error.message;
+      }
+      res.status(500).json({
+        error: errorMessage,
+      });
+    }
+  }
+
   async submitForPortalAction(req: Request, res: Response): Promise<void> {
     try {
       const { tokenId, savedForm, config } = req.body;

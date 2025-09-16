@@ -14,6 +14,7 @@ describe('Communications Controller', () => {
   let generatePortalFormStub: sinon.SinonStub;
   let loadPortalFormStub: sinon.SinonStub;
   let submitForPortalActionStub: sinon.SinonStub;
+  let bindFormDataStub: sinon.SinonStub;
 
   beforeEach(() => {
     loadICMDataStub = sinon.stub(ICMService, 'loadICMData');
@@ -24,6 +25,7 @@ describe('Communications Controller', () => {
     generatePortalFormStub = sinon.stub(ICMService, 'generatePortalForm');
     loadPortalFormStub = sinon.stub(ICMService, 'loadPortalForm');
     submitForPortalActionStub = sinon.stub(ICMService, 'submitForPortalAction');
+    bindFormDataStub = sinon.stub(ICMService, 'bindFormData');
   });
 
   afterEach(() => {
@@ -1907,6 +1909,200 @@ describe('Communications Controller', () => {
         .expect(500);
 
       expect(response.body).to.deep.equal({ error: 'Internal server error' });
+    });
+  });
+
+  describe('loadBoundForm endpoint', () => {
+    it('should successfully load and bind form data with ICM integration', async () => {
+      const testData = {
+        attachmentId: 'test-attachment-123',
+        username: 'testuser',
+        isPortalIntegrated: false,
+      };
+
+      const mockFormData = {
+        form_definition: { elements: [{ uuid: 'field1', type: 'text' }] },
+        data: { field1: 'test value' },
+        metadata: { attachmentId: 'test-attachment-123' },
+      };
+
+      const boundFormData = {
+        form_definition: { 
+          elements: [{ uuid: 'field1', type: 'text', value: 'test value' }] 
+        },
+        data: { field1: 'test value' },
+        metadata: { attachmentId: 'test-attachment-123' },
+        bound: true,
+      };
+
+      loadICMDataStub.resolves({ success: true, data: mockFormData });
+      bindFormDataStub.resolves(boundFormData);
+
+      const response = await request(Server)
+        .post('/api/loadBoundForm')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(200);
+
+      expect(response.body).to.deep.equal(boundFormData);
+
+      expect(loadICMDataStub.calledOnce).to.be.true;
+      expect(bindFormDataStub.calledOnce).to.be.true;
+
+      const [icmData, token] = loadICMDataStub.getCall(0).args;
+      expect(icmData).to.deep.equal({
+        attachmentId: 'test-attachment-123',
+        username: 'testuser',
+        originalServer: undefined,
+      });
+      expect(token).to.be.undefined;
+
+      const boundData = bindFormDataStub.getCall(0).args[0];
+      expect(boundData).to.deep.equal(mockFormData);
+    });
+
+    it('should successfully load and bind form data with portal integration', async () => {
+      const testData = {
+        attachmentId: 'portal-attachment-456',
+        isPortalIntegrated: true,
+      };
+
+      const mockPortalData = {
+        form_definition: { elements: [{ uuid: 'portalField', type: 'select' }] },
+        data: { portalField: 'portal value' },
+        metadata: { source: 'portal' },
+      };
+
+      const boundPortalData = {
+        form_definition: {
+          elements: [{ uuid: 'portalField', type: 'select', value: 'portal value' }]
+        },
+        data: { portalField: 'portal value' },
+        metadata: { source: 'portal' },
+        bound: true,
+      };
+
+      loadPortalFormStub.resolves({ success: true, data: mockPortalData });
+      bindFormDataStub.resolves(boundPortalData);
+
+      const response = await request(Server)
+        .post('/api/loadBoundForm')
+        .set('Authorization', 'Bearer portal-token-123')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(200);
+
+      expect(response.body).to.deep.equal(boundPortalData);
+
+      expect(loadPortalFormStub.calledOnce).to.be.true;
+      expect(bindFormDataStub.calledOnce).to.be.true;
+
+      const [portalData, token, originalServer] = loadPortalFormStub.getCall(0).args;
+      expect(portalData).to.deep.equal({ attachmentId: 'portal-attachment-456' });
+      expect(token).to.equal('portal-token-123');
+      expect(originalServer).to.be.undefined;
+    });
+
+    it('should handle ICM service error during data loading', async () => {
+      const testData = {
+        attachmentId: 'invalid-attachment',
+        username: 'testuser',
+        isPortalIntegrated: false,
+      };
+
+      loadICMDataStub.resolves({
+        success: false,
+        error: 'Attachment not found',
+        status: 404,
+      });
+
+      const response = await request(Server)
+        .post('/api/loadBoundForm')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(404);
+
+      expect(response.body).to.deep.equal({ error: 'Attachment not found' });
+
+      expect(loadICMDataStub.calledOnce).to.be.true;
+      expect(bindFormDataStub.called).to.be.false;
+    });
+
+    it('should handle portal service error during data loading', async () => {
+      const testData = {
+        attachmentId: 'invalid-portal-form',
+        isPortalIntegrated: true,
+      };
+
+      loadPortalFormStub.resolves({
+        success: false,
+        error: 'Portal form access denied',
+        status: 403,
+      });
+
+      const response = await request(Server)
+        .post('/api/loadBoundForm')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(403);
+
+      expect(response.body).to.deep.equal({ error: 'Portal form access denied' });
+
+      expect(loadPortalFormStub.calledOnce).to.be.true;
+      expect(bindFormDataStub.called).to.be.false;
+    });
+
+    it('should handle data binding errors', async () => {
+      const testData = {
+        attachmentId: 'binding-error-attachment',
+        username: 'testuser',
+        isPortalIntegrated: false,
+      };
+
+      const mockFormData = {
+        form_definition: { elements: [{ uuid: 'field1', type: 'text' }] },
+        data: { field1: 'test value' },
+      };
+
+      loadICMDataStub.resolves({ success: true, data: mockFormData });
+      bindFormDataStub.rejects(new Error('Data binding failed'));
+
+      const response = await request(Server)
+        .post('/api/loadBoundForm')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(500);
+
+      expect(response.body).to.deep.equal({ error: 'Data binding failed' });
+
+      expect(loadICMDataStub.calledOnce).to.be.true;
+      expect(bindFormDataStub.calledOnce).to.be.true;
+    });
+
+    it('should pass through originalServer header correctly', async () => {
+      const testData = {
+        attachmentId: 'server-test-attachment',
+        username: 'testuser',
+        isPortalIntegrated: false,
+      };
+
+      const mockFormData = {
+        form_definition: { elements: [] },
+        data: {},
+        metadata: {},
+      };
+
+      loadICMDataStub.resolves({ success: true, data: mockFormData });
+      bindFormDataStub.resolves({ ...mockFormData, bound: true });
+
+      await request(Server)
+        .post('/api/loadBoundForm')
+        .set('x-original-server', 'https://test-server.example.com')
+        .send(testData)
+        .expect(200);
+
+      const [icmData] = loadICMDataStub.getCall(0).args;
+      expect(icmData.originalServer).to.equal('https://test-server.example.com');
     });
   });
 });
