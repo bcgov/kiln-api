@@ -15,6 +15,7 @@ describe('Communications Controller', () => {
   let loadPortalFormStub: sinon.SinonStub;
   let submitForPortalActionStub: sinon.SinonStub;
   let bindFormDataStub: sinon.SinonStub;
+  let saveFormDataStub: sinon.SinonStub;
 
   beforeEach(() => {
     loadICMDataStub = sinon.stub(ICMService, 'loadICMData');
@@ -26,6 +27,7 @@ describe('Communications Controller', () => {
     loadPortalFormStub = sinon.stub(ICMService, 'loadPortalForm');
     submitForPortalActionStub = sinon.stub(ICMService, 'submitForPortalAction');
     bindFormDataStub = sinon.stub(ICMService, 'bindFormData');
+    saveFormDataStub = sinon.stub(ICMService, 'saveFormData');
   });
 
   afterEach(() => {
@@ -1950,6 +1952,128 @@ describe('Communications Controller', () => {
       expect(icmData.originalServer).to.equal(
         'https://test-server.example.com'
       );
+    });
+  });
+
+  describe('saveFormData endpoint', () => {
+    it('should successfully save form data with save action', async () => {
+      const testData = {
+        action: 'save',
+        formState: { field1: 'value1', field2: 'value2' },
+        groupState: { group1: 'groupValue' },
+        formDefinition: { title: 'Test Form', elements: [] },
+        metadata: { version: '1.0' },
+        items: [{ id: 'item1', value: 'test' }],
+        sessionParams: { sessionId: 'session-123' }
+      };
+
+      saveFormDataStub.resolves({
+        success: true,
+        data: { saved: true, action: 'save' }
+      });
+
+      const response = await request(Server)
+        .post('/api/saveFormData')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(200);
+
+      expect(response.body).to.deep.equal({
+        saved: true,
+        action: 'save'
+      });
+
+      expect(saveFormDataStub.calledOnce).to.be.true;
+      const [data, token] = saveFormDataStub.getCall(0).args;
+      expect(data).to.deep.equal(testData);
+      expect(token).to.be.undefined;
+    });
+
+    it('should successfully save form data with save_and_close action using token', async () => {
+      const testData = {
+        action: 'save_and_close',
+        formState: { field1: 'value1' },
+        groupState: {},
+        formDefinition: { title: 'Test Form' },
+        metadata: { version: '1.0' },
+        items: [],
+        sessionParams: { sessionId: 'session-456' }
+      };
+
+      saveFormDataStub.resolves({
+        success: true,
+        data: { saved: true, unlocked: true, action: 'save_and_close' }
+      });
+
+      const response = await request(Server)
+        .post('/api/saveFormData')
+        .set('Authorization', 'Bearer test-token-123')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(200);
+
+      expect(response.body).to.deep.equal({
+        saved: true,
+        unlocked: true,
+        action: 'save_and_close'
+      });
+
+      expect(saveFormDataStub.calledOnce).to.be.true;
+      const [data, token] = saveFormDataStub.getCall(0).args;
+      expect(data).to.deep.equal(testData);
+      expect(token).to.equal('test-token-123');
+    });
+
+    it('should handle validation errors from service', async () => {
+      const testData = {
+        action: 'save',
+        formState: null,
+        groupState: {},
+        formDefinition: null
+      };
+
+      saveFormDataStub.resolves({
+        success: false,
+        error: 'Invalid form data: formState and formDefinition are required',
+        status: 400
+      });
+
+      const response = await request(Server)
+        .post('/api/saveFormData')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(400);
+
+      expect(response.body).to.deep.equal({
+        error: 'Invalid form data: formState and formDefinition are required'
+      });
+    });
+
+    it('should handle service error with default status 500', async () => {
+      const testData = {
+        action: 'save',
+        formState: { field1: 'value1' },
+        groupState: {},
+        formDefinition: { title: 'Test Form' },
+        metadata: {},
+        items: [],
+        sessionParams: {}
+      };
+
+      saveFormDataStub.resolves({
+        success: false,
+        error: 'Internal save error'
+      });
+
+      const response = await request(Server)
+        .post('/api/saveFormData')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(500);
+
+      expect(response.body).to.deep.equal({
+        error: 'Internal save error'
+      });
     });
   });
 });
