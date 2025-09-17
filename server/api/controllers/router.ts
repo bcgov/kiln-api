@@ -45,6 +45,9 @@ router.post('/loadBoundForm', (req, res) =>
 router.post('/bindPreviewForm', (req, res) =>
   CommunicationsController.bindPreviewForm(req, res)
 );
+router.post('/saveFormData', (req, res) =>
+  CommunicationsController.saveFormData(req, res)
+);
 
 // Kiln Renderer Routes
 router.get('/view', (req, res) => RendererController.viewForm(req, res));

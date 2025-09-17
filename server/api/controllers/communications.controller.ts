@@ -74,7 +74,7 @@ export class CommunicationsController {
     }
   }
 
-  async clearICMLockedFlag(req: Request, res: Response): Promise<void> {
+  async unlockICMData(req: Request, res: Response): Promise<void> {
     const { token, username, ...params } = req.body;
 
     const authHeader = req.headers.authorization;
@@ -282,6 +282,52 @@ export class CommunicationsController {
         savedForm,
         config,
       });
+
+      if (result.success) {
+        res.status(200).json(result.data);
+      } else {
+        res.status(result.status || 500).json({ error: result.error });
+      }
+    } catch (error) {
+      let errorMessage = 'Internal server error';
+      if (error instanceof Error && error.message) {
+        errorMessage = error.message;
+      }
+      res.status(500).json({
+        error: errorMessage,
+      });
+    }
+  }
+
+  async saveFormData(req: Request, res: Response): Promise<void> {
+    try {
+      const {
+        action,
+        formState,
+        groupState,
+        formDefinition,
+        metadata,
+        items,
+        sessionParams,
+      } = req.body;
+
+      const authHeader = req.headers.authorization;
+      const token = authHeader?.startsWith('Bearer ')
+        ? authHeader.substring(7)
+        : authHeader;
+
+      const result = await ICMService.saveFormData(
+        {
+          action,
+          formState,
+          groupState,
+          formDefinition,
+          metadata,
+          items,
+          sessionParams,
+        },
+        token
+      );
 
       if (result.success) {
         res.status(200).json(result.data);
