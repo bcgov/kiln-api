@@ -1622,4 +1622,143 @@ describe('ICMService', () => {
       expect(calledPayload).to.deep.equal(testData);
     });
   });
+
+  describe('saveFormData', () => {
+    it('should successfully save form data with save action and return structured response', async () => {
+      const testData = {
+        action: 'save' as const,
+        formState: {
+          field1: 'test value',
+          field2: 'another value'
+        },
+        groupState: {},
+        formDefinition: {
+          id: 'test-form',
+          version: '1.0',
+          elements: [
+            {
+              uuid: 'field1',
+              type: 'text',
+              visible_web: true
+            },
+            {
+              uuid: 'field2',
+              type: 'text',
+              visible_web: true
+            }
+          ]
+        },
+        metadata: {
+          created_date: new Date().toISOString()
+        },
+        items: [
+          {
+            uuid: 'field1',
+            type: 'text',
+            visible_web: true
+          },
+          {
+            uuid: 'field2',
+            type: 'text',
+            visible_web: true
+          }
+        ],
+        sessionParams: {
+          attachmentId: 'test-attachment',
+          OfficeName: 'test-office',
+          username: 'testuser'
+        }
+      };
+
+      const mockSaveResponse = {
+        ok: true,
+        json: sinon.stub().resolves({ status: 'success', id: 'saved-123' }),
+      };
+
+      icmClientStub.saveICMData.resolves(mockSaveResponse as any);
+
+      const result = await icmService.saveFormData(testData, 'test-token');
+
+      expect(result.success).to.be.true;
+      expect(result.data).to.deep.equal({
+        saved: true,
+        action: 'save'
+      });
+      expect(icmClientStub.saveICMData.calledOnce).to.be.true;
+
+      // Verify the saveICMData was called with the correct transformed payload
+      const calledPayload = icmClientStub.saveICMData.getCall(0).args[0];
+      expect(calledPayload).to.have.property('attachmentId', 'test-attachment');
+      expect(calledPayload).to.have.property('OfficeName', 'test-office');
+      expect(calledPayload).to.have.property('savedForm');
+
+      // Verify savedForm is stringified saved data structure
+      const savedForm = JSON.parse(calledPayload.savedForm);
+      expect(savedForm).to.have.property('data');
+      expect(savedForm).to.have.property('form_definition');
+      expect(savedForm).to.have.property('metadata');
+      expect(savedForm.data).to.deep.equal({
+        field1: 'test value',
+        field2: 'another value'
+      });
+    });
+
+    it('should successfully handle save_and_close action with unlock orchestration', async () => {
+      const testData = {
+        action: 'save_and_close' as const,
+        formState: { field1: 'test value' },
+        groupState: {},
+        formDefinition: { id: 'test-form', elements: [] },
+        metadata: {},
+        items: [],
+        sessionParams: {
+          attachmentId: 'test-attachment',
+          OfficeName: 'test-office',
+          username: 'testuser'
+        }
+      };
+
+      const mockSaveResponse = {
+        ok: true,
+        json: sinon.stub().resolves({ status: 'success' }),
+      };
+
+      const mockUnlockResponse = {
+        ok: true,
+        json: sinon.stub().resolves({ unlocked: true }),
+      };
+
+      icmClientStub.saveICMData.resolves(mockSaveResponse as any);
+      icmClientStub.unlockICMData.resolves(mockUnlockResponse as any);
+
+      const result = await icmService.saveFormData(testData, 'test-token');
+
+      expect(result.success).to.be.true;
+      expect(result.data).to.deep.equal({
+        saved: true,
+        unlocked: true,
+        action: 'save_and_close'
+      });
+      expect(icmClientStub.saveICMData.calledOnce).to.be.true;
+      expect(icmClientStub.unlockICMData.calledOnce).to.be.true;
+    });
+
+    it('should return error when missing required fields', async () => {
+      const testData = {
+        // Missing required 'action' field
+        formState: {},
+        formDefinition: {},
+        items: [],
+        sessionParams: {}
+      };
+
+      const result = await icmService.saveFormData(testData as any);
+
+      expect(result.success).to.be.false;
+      expect(result.error).to.equal('Missing required fields: action, formState, formDefinition, or items');
+      expect(result.status).to.equal(400);
+      expect(icmClientStub.saveICMData.called).to.be.false;
+      expect(icmClientStub.unlockICMData.called).to.be.false;
+    });
+  });
 });
