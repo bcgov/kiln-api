@@ -434,3 +434,43 @@ paths:
           description: Bad request - missing formData parameter
         500:
           description: Internal server error
+
+  /saveFormData:
+    post:
+      tags:
+        - Communications Layer
+        - Kiln Interface
+      summary: Unified save form data endpoint
+      description: Handles both save and save-and-close actions with server-side orchestration. Replaces separate saveICMData and unlockICMData calls with unified backend logic.
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: saveRequest
+          required: true
+          schema:
+            type: object
+            additionalProperties: true
+      responses:
+        200:
+          description: Form data saved successfully
+          schema:
+            type: object
+            properties:
+              saved:
+                type: boolean
+                description: Whether the save operation succeeded
+              unlocked:
+                type: boolean
+                description: Whether unlock succeeded (only present for save_and_close)
+              action:
+                type: string
+                description: The action that was performed
+        400:
+          description: Bad request - missing required fields
+        401:
+          description: Unauthorized - authentication required
+        500:
+          description: Internal server error
