@@ -12,9 +12,6 @@ const router = express.Router();
 router.post('/saveICMData', (req, res) =>
   CommunicationsController.saveICMData(req, res)
 );
-router.post('/saveForm', (req, res) =>
-  CommunicationsController.saveData(req, res)
-);
 router.post('/generateForm', (req, res) =>
   CommunicationsController.generateForm(req, res)
 );
@@ -24,8 +21,8 @@ router.post('/editForm', (req, res) =>
 router.post('/loadICMData', (req, res) =>
   CommunicationsController.loadICMData(req, res)
 );
-router.post('/clearICMLockedFlag', (req, res) =>
-  CommunicationsController.clearICMLockedFlag(req, res)
+router.post('/unlockICMData', (req, res) =>
+  CommunicationsController.unlockICMData(req, res)
 );
 router.post('/loadSavedJson', (req, res) =>
   CommunicationsController.loadSavedJson(req, res)
@@ -33,14 +30,23 @@ router.post('/loadSavedJson', (req, res) =>
 router.post('/pdfRender/:pdfTemplateId', (req, res) =>
   CommunicationsController.pdfRender(req, res)
 );
-router.post('/generatePDFFromJson', (req, res) =>
-  CommunicationsController.generatePDFFromJson(req, res)
-);
-router.post('/generateNewTemplate', (req, res) =>
-  CommunicationsController.generateNewTemplate(req, res)
+router.post('/generatePortalForm', (req, res) =>
+  CommunicationsController.generatePortalForm(req, res)
 );
 router.post('/loadPortalForm', (req, res) =>
   CommunicationsController.loadPortalForm(req, res)
+);
+router.post('/submitForPortalAction', (req, res) =>
+  CommunicationsController.submitForPortalAction(req, res)
+);
+router.post('/loadBoundForm', (req, res) =>
+  CommunicationsController.loadBoundForm(req, res)
+);
+router.post('/bindPreviewForm', (req, res) =>
+  CommunicationsController.bindPreviewForm(req, res)
+);
+router.post('/saveFormData', (req, res) =>
+  CommunicationsController.saveFormData(req, res)
 );
 
 // Kiln Renderer Routes

@@ -2,10 +2,6 @@ import { Request, Response } from 'express';
 import ICMService from '../services/icm.service';
 
 export class CommunicationsController {
-  saveData(req: Request, res: Response): void {
-    res.json({ endpoint: 'saveForm', payload: req.body });
-  }
-
   async generateForm(req: Request, res: Response): Promise<void> {
     const originalServer = req.headers['x-original-server'] as string;
     const { token, username, ...params } = req.body;
@@ -78,7 +74,7 @@ export class CommunicationsController {
     }
   }
 
-  async clearICMLockedFlag(req: Request, res: Response): Promise<void> {
+  async unlockICMData(req: Request, res: Response): Promise<void> {
     const { token, username, ...params } = req.body;
 
     const authHeader = req.headers.authorization;
@@ -152,6 +148,29 @@ export class CommunicationsController {
     }
   }
 
+  async generatePortalForm(req: Request, res: Response): Promise<void> {
+    const originalServer = req.headers['x-original-server'] as string;
+    const { token, username, ...params } = req.body;
+
+    const authHeader = req.headers.authorization;
+    const authToken =
+      token ||
+      (authHeader?.startsWith('Bearer ')
+        ? authHeader.substring(7)
+        : authHeader);
+
+    const result = await ICMService.generatePortalForm(
+      { ...params, username, originalServer },
+      authToken
+    );
+
+    if (result.success) {
+      res.status(200).json(result.data);
+    } else {
+      res.status(result.status || 500).json({ error: result.error });
+    }
+  }
+
   async loadPortalForm(req: Request, res: Response): Promise<void> {
     try {
       const requestData = req.body;
@@ -187,12 +206,143 @@ export class CommunicationsController {
     }
   }
 
-  generatePDFFromJson(req: Request, res: Response): void {
-    res.json({ endpoint: 'generatePDFFromJson', payload: req.body });
+  async loadBoundForm(req: Request, res: Response): Promise<void> {
+    try {
+      const originalServer = req.headers['x-original-server'] as string;
+      const { token, username, isPortalIntegrated, ...params } = req.body;
+
+      const authHeader = req.headers.authorization;
+      const authToken =
+        token ||
+        (authHeader?.startsWith('Bearer ')
+          ? authHeader.substring(7)
+          : authHeader);
+
+      let result;
+      if (isPortalIntegrated) {
+        result = await ICMService.loadPortalForm(
+          { ...params },
+          authToken,
+          originalServer
+        );
+      } else {
+        result = await ICMService.loadICMData(
+          { ...params, username, originalServer },
+          authToken
+        );
+      }
+
+      if (result.success) {
+        const boundData = await ICMService.bindFormData(result.data);
+        res.status(200).json(boundData);
+      } else {
+        res.status(result.status || 500).json({ error: result.error });
+      }
+    } catch (error) {
+      let errorMessage = 'Internal server error';
+      if (error instanceof Error && error.message) {
+        errorMessage = error.message;
+      }
+      res.status(500).json({
+        error: errorMessage,
+      });
+    }
   }
 
-  generateNewTemplate(req: Request, res: Response): void {
-    res.json({ endpoint: 'generateNewTemplate', payload: req.body });
+  async bindPreviewForm(req: Request, res: Response): Promise<void> {
+    try {
+      const { formData } = req.body;
+
+      if (!formData) {
+        res.status(400).json({ error: 'Form data is required' });
+        return;
+      }
+
+      const boundData = await ICMService.bindFormData(formData);
+      res.status(200).json(boundData);
+    } catch (error) {
+      let errorMessage = 'Internal server error';
+      if (error instanceof Error && error.message) {
+        errorMessage = error.message;
+      }
+      res.status(500).json({
+        error: errorMessage,
+      });
+    }
+  }
+
+  async submitForPortalAction(req: Request, res: Response): Promise<void> {
+    try {
+      const { tokenId, savedForm, config } = req.body;
+
+      // TODO: Implement authentication/authorization when available
+
+      const result = await ICMService.submitForPortalAction({
+        tokenId,
+        savedForm,
+        config,
+      });
+
+      if (result.success) {
+        res.status(200).json(result.data);
+      } else {
+        res.status(result.status || 500).json({ error: result.error });
+      }
+    } catch (error) {
+      let errorMessage = 'Internal server error';
+      if (error instanceof Error && error.message) {
+        errorMessage = error.message;
+      }
+      res.status(500).json({
+        error: errorMessage,
+      });
+    }
+  }
+
+  async saveFormData(req: Request, res: Response): Promise<void> {
+    try {
+      const {
+        action,
+        formState,
+        groupState,
+        formDefinition,
+        metadata,
+        items,
+        sessionParams,
+      } = req.body;
+
+      const authHeader = req.headers.authorization;
+      const token = authHeader?.startsWith('Bearer ')
+        ? authHeader.substring(7)
+        : authHeader;
+
+      const result = await ICMService.saveFormData(
+        {
+          action,
+          formState,
+          groupState,
+          formDefinition,
+          metadata,
+          items,
+          sessionParams,
+        },
+        token
+      );
+
+      if (result.success) {
+        res.status(200).json(result.data);
+      } else {
+        res.status(result.status || 500).json({ error: result.error });
+      }
+    } catch (error) {
+      let errorMessage = 'Internal server error';
+      if (error instanceof Error && error.message) {
+        errorMessage = error.message;
+      }
+      res.status(500).json({
+        error: errorMessage,
+      });
+    }
   }
 }
 

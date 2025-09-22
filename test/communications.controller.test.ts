@@ -11,7 +11,11 @@ describe('Communications Controller', () => {
   let loadSavedJsonStub: sinon.SinonStub;
   let generateFormStub: sinon.SinonStub;
   let pdfRenderStub: sinon.SinonStub;
+  let generatePortalFormStub: sinon.SinonStub;
   let loadPortalFormStub: sinon.SinonStub;
+  let submitForPortalActionStub: sinon.SinonStub;
+  let bindFormDataStub: sinon.SinonStub;
+  let saveFormDataStub: sinon.SinonStub;
 
   beforeEach(() => {
     loadICMDataStub = sinon.stub(ICMService, 'loadICMData');
@@ -19,24 +23,16 @@ describe('Communications Controller', () => {
     loadSavedJsonStub = sinon.stub(ICMService, 'loadSavedJson');
     generateFormStub = sinon.stub(ICMService, 'generateForm');
     pdfRenderStub = sinon.stub(ICMService, 'pdfRender');
+    generatePortalFormStub = sinon.stub(ICMService, 'generatePortalForm');
     loadPortalFormStub = sinon.stub(ICMService, 'loadPortalForm');
+    submitForPortalActionStub = sinon.stub(ICMService, 'submitForPortalAction');
+    bindFormDataStub = sinon.stub(ICMService, 'bindFormData');
+    saveFormDataStub = sinon.stub(ICMService, 'saveFormData');
   });
 
   afterEach(() => {
     sinon.restore();
   });
-
-  // Test sample of placeholder endpoints to verify basic connectivity
-  it('should respond to POST /api/saveForm', () =>
-    request(Server)
-      .post('/api/saveForm')
-      .send({ test: true })
-      .expect('Content-Type', /json/)
-      .expect(200)
-      .then((res) => {
-        expect(res.body).to.have.property('endpoint', 'saveForm');
-        expect(res.body.payload).to.have.property('test', true);
-      }));
 
   describe('generateForm endpoint', () => {
     it('should successfully generate form with username', async () => {
@@ -394,7 +390,7 @@ describe('Communications Controller', () => {
     });
   });
 
-  describe('clearICMLockedFlag endpoint', () => {
+  describe('unlockICMData endpoint', () => {
     it('should successfully clear ICM locked flag with username', async () => {
       const testData = {
         username: 'testuser',
@@ -408,7 +404,7 @@ describe('Communications Controller', () => {
       });
 
       const response = await request(Server)
-        .post('/api/clearICMLockedFlag')
+        .post('/api/unlockICMData')
         .send(testData)
         .expect('Content-Type', /json/)
         .expect(200);
@@ -441,7 +437,7 @@ describe('Communications Controller', () => {
       });
 
       const response = await request(Server)
-        .post('/api/clearICMLockedFlag')
+        .post('/api/unlockICMData')
         .set('Authorization', 'Bearer test-token-456')
         .send(testData)
         .expect('Content-Type', /json/)
@@ -474,7 +470,7 @@ describe('Communications Controller', () => {
       });
 
       const response = await request(Server)
-        .post('/api/clearICMLockedFlag')
+        .post('/api/unlockICMData')
         .send(testData)
         .expect('Content-Type', /json/)
         .expect(200);
@@ -504,7 +500,7 @@ describe('Communications Controller', () => {
       });
 
       const response = await request(Server)
-        .post('/api/clearICMLockedFlag')
+        .post('/api/unlockICMData')
         .send(testData)
         .expect('Content-Type', /json/)
         .expect(403);
@@ -527,7 +523,7 @@ describe('Communications Controller', () => {
       });
 
       const response = await request(Server)
-        .post('/api/clearICMLockedFlag')
+        .post('/api/unlockICMData')
         .send(testData)
         .expect('Content-Type', /json/)
         .expect(500);
@@ -684,10 +680,7 @@ describe('Communications Controller', () => {
     it('should return 404 when PDF template ID is missing from URL', async () => {
       const formData = { data: 'test' };
 
-      await request(Server)
-        .post('/api/pdfRender/')
-        .send(formData)
-        .expect(404); // Express route not found
+      await request(Server).post('/api/pdfRender/').send(formData).expect(404); // Express route not found
 
       expect(pdfRenderStub.called).to.be.false;
     });
@@ -846,7 +839,9 @@ describe('Communications Controller', () => {
         .expect(200);
 
       const serviceData = pdfRenderStub.getCall(0).args[0];
-      expect(serviceData.pdfTemplateId).to.equal('template_with-special.chars@123');
+      expect(serviceData.pdfTemplateId).to.equal(
+        'template_with-special.chars@123'
+      );
     });
 
     it('should handle large PDF responses', async () => {
@@ -900,6 +895,195 @@ describe('Communications Controller', () => {
 
       expect(response.body).to.deep.equal({
         error: 'Internal server error',
+      });
+    });
+  });
+
+  describe('generatePortalForm endpoint', () => {
+    it('should successfully generate portal form with username', async () => {
+      const testData = {
+        username: 'testuser',
+        formType: 'portal',
+        templateId: 'tpl-123',
+      };
+
+      generatePortalFormStub.resolves({
+        success: true,
+        data: { save_data: { id: 'pf-123', built: true }, status: 'created' },
+      });
+
+      const response = await request(Server)
+        .post('/api/generatePortalForm')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(200);
+
+      expect(response.body).to.deep.equal({
+        save_data: { id: 'pf-123', built: true },
+        status: 'created',
+      });
+
+      expect(generatePortalFormStub.calledOnce).to.be.true;
+      const [data, token] = generatePortalFormStub.getCall(0).args;
+      expect(data).to.deep.equal({
+        formType: 'portal',
+        templateId: 'tpl-123',
+        username: 'testuser',
+        originalServer: undefined,
+      });
+      expect(token).to.be.undefined;
+    });
+
+    it('should successfully generate portal form with token in Authorization header', async () => {
+      const testData = {
+        formType: 'portal',
+        templateId: 'tpl-456',
+      };
+
+      generatePortalFormStub.resolves({
+        success: true,
+        data: { save_data: { id: 'pf-456' }, ok: true },
+      });
+
+      const response = await request(Server)
+        .post('/api/generatePortalForm')
+        .set('Authorization', 'Bearer header-token-123')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(200);
+
+      expect(response.body).to.deep.equal({
+        save_data: { id: 'pf-456' },
+        ok: true,
+      });
+
+      const [data, token] = generatePortalFormStub.getCall(0).args;
+      expect(data).to.deep.equal({
+        formType: 'portal',
+        templateId: 'tpl-456',
+        username: undefined,
+        originalServer: undefined,
+      });
+      expect(token).to.equal('header-token-123');
+    });
+
+    it('should prioritize token from request body over Authorization header', async () => {
+      const testData = {
+        token: 'body-token-999',
+        formType: 'portal',
+        templateId: 'tpl-priority',
+      };
+
+      generatePortalFormStub.resolves({
+        success: true,
+        data: { save_data: { id: 'pf-priority' } },
+      });
+
+      const response = await request(Server)
+        .post('/api/generatePortalForm')
+        .set('Authorization', 'Bearer header-token-should-be-ignored')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(200);
+
+      expect(response.body).to.deep.equal({ save_data: { id: 'pf-priority' } });
+
+      const [data, token] = generatePortalFormStub.getCall(0).args;
+      expect(token).to.equal('body-token-999');
+      expect(data).to.deep.equal({
+        formType: 'portal',
+        templateId: 'tpl-priority',
+        username: undefined,
+        originalServer: undefined,
+      });
+    });
+
+    it('should pass through originalServer from headers', async () => {
+      const testData = {
+        username: 'testuser',
+        formType: 'portal',
+        templateId: 'tpl-os',
+      };
+
+      generatePortalFormStub.resolves({
+        success: true,
+        data: { save_data: { id: 'pf-os' } },
+      });
+
+      await request(Server)
+        .post('/api/generatePortalForm')
+        .set('x-original-server', 'https://icm-dev.internal')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(200);
+
+      const [data] = generatePortalFormStub.getCall(0).args;
+      expect(data.originalServer).to.equal('https://icm-dev.internal');
+    });
+
+    it('should return 401 when service reports authentication error', async () => {
+      generatePortalFormStub.resolves({
+        success: false,
+        status: 401,
+        error: 'Authentication required',
+      });
+
+      const response = await request(Server)
+        .post('/api/generatePortalForm')
+        .send({ formType: 'portal', templateId: 'tpl-unauth' })
+        .expect('Content-Type', /json/)
+        .expect(401);
+
+      expect(response.body).to.deep.equal({ error: 'Authentication required' });
+    });
+
+    it('should handle service error with default status 500', async () => {
+      generatePortalFormStub.resolves({
+        success: false,
+        error: 'Internal portal generation error',
+      });
+
+      const response = await request(Server)
+        .post('/api/generatePortalForm')
+        .send({ formType: 'portal', templateId: 'tpl-err' })
+        .expect('Content-Type', /json/)
+        .expect(500);
+
+      expect(response.body).to.deep.equal({
+        error: 'Internal portal generation error',
+      });
+    });
+
+    it('should pass through all request body parameters', async () => {
+      const testData = {
+        username: 'testuser',
+        formType: 'portal',
+        templateId: 'tpl-777',
+        customField1: 'v1',
+        customField2: 2,
+        metadata: { source: 'api' },
+      };
+
+      generatePortalFormStub.resolves({
+        success: true,
+        data: { save_data: { id: 'pf-777' } },
+      });
+
+      await request(Server)
+        .post('/api/generatePortalForm')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(200);
+
+      const [data] = generatePortalFormStub.getCall(0).args;
+      expect(data).to.deep.equal({
+        formType: 'portal',
+        templateId: 'tpl-777',
+        customField1: 'v1',
+        customField2: 2,
+        metadata: { source: 'api' },
+        username: 'testuser',
+        originalServer: undefined,
       });
     });
   });
@@ -1140,11 +1324,8 @@ describe('Communications Controller', () => {
         .send({})
         .expect(400);
 
-      // OpenAPI validation may reject empty body before reaching controller
-      // so we just verify the request was handled with a 400 status
       expect(response.status).to.equal(400);
 
-      // The stub may or may not be called depending on OpenAPI validation
       if (loadPortalFormStub.called) {
         const [data] = loadPortalFormStub.getCall(0).args;
         expect(data).to.deep.equal({});
@@ -1322,6 +1503,577 @@ describe('Communications Controller', () => {
       expect(data.portalFormId).to.equal('portal-headers');
       expect(token).to.equal('header-token');
       expect(originalServer).to.equal('https://headers.example.com');
+    });
+  });
+
+  describe('submitForPortalAction endpoint', () => {
+    it('should successfully submit portal action with all required fields', async () => {
+      const testData = {
+        tokenId: 'token-123',
+        savedForm: 'form-data-json',
+        config: { action: 'submit', workflow: 'approval' },
+      };
+
+      submitForPortalActionStub.resolves({
+        success: true,
+        data: {
+          success: true,
+          actionId: 'action-456',
+          status: 'submitted',
+        },
+      });
+
+      const response = await request(Server)
+        .post('/api/submitForPortalAction')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(200);
+
+      expect(response.body).to.deep.equal({
+        success: true,
+        actionId: 'action-456',
+        status: 'submitted',
+      });
+
+      expect(submitForPortalActionStub.calledOnce).to.be.true;
+      const data = submitForPortalActionStub.getCall(0).args[0];
+      expect(data).to.deep.equal({
+        tokenId: 'token-123',
+        savedForm: 'form-data-json',
+        config: { action: 'submit', workflow: 'approval' },
+      });
+    });
+
+    it('should return error when tokenId is missing', async () => {
+      const testData = {
+        savedForm: 'form-data-json',
+        config: { action: 'submit' },
+      };
+
+      submitForPortalActionStub.resolves({
+        success: false,
+        error: 'Missing required fields: tokenId, savedForm, or config',
+        status: 400,
+      });
+
+      const response = await request(Server)
+        .post('/api/submitForPortalAction')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(400);
+
+      expect(response.body).to.deep.equal({
+        error: 'Missing required fields: tokenId, savedForm, or config',
+      });
+    });
+
+    it('should return error when savedForm is missing', async () => {
+      const testData = {
+        tokenId: 'token-123',
+        config: { action: 'submit' },
+      };
+
+      submitForPortalActionStub.resolves({
+        success: false,
+        error: 'Missing required fields: tokenId, savedForm, or config',
+        status: 400,
+      });
+
+      const response = await request(Server)
+        .post('/api/submitForPortalAction')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(400);
+
+      expect(response.body).to.deep.equal({
+        error: 'Missing required fields: tokenId, savedForm, or config',
+      });
+    });
+
+    it('should return error when config is missing', async () => {
+      const testData = {
+        tokenId: 'token-123',
+        savedForm: 'form-data-json',
+      };
+
+      submitForPortalActionStub.resolves({
+        success: false,
+        error: 'Missing required fields: tokenId, savedForm, or config',
+        status: 400,
+      });
+
+      const response = await request(Server)
+        .post('/api/submitForPortalAction')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(400);
+
+      expect(response.body).to.deep.equal({
+        error: 'Missing required fields: tokenId, savedForm, or config',
+      });
+    });
+
+    it('should handle ICM service error responses', async () => {
+      const testData = {
+        tokenId: 'invalid-token',
+        savedForm: 'form-data-json',
+        config: { action: 'submit' },
+      };
+
+      submitForPortalActionStub.resolves({
+        success: false,
+        error: 'Unauthorized',
+        status: 401,
+      });
+
+      const response = await request(Server)
+        .post('/api/submitForPortalAction')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(401);
+
+      expect(response.body).to.deep.equal({
+        error: 'Unauthorized',
+      });
+    });
+
+    it('should handle ICM service error responses with default error message', async () => {
+      const testData = {
+        tokenId: 'error-token',
+        savedForm: 'form-data-json',
+        config: { action: 'submit' },
+      };
+
+      submitForPortalActionStub.resolves({
+        success: false,
+        error: 'Error submitting button action. Please try again.',
+        status: 500,
+      });
+
+      const response = await request(Server)
+        .post('/api/submitForPortalAction')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(500);
+
+      expect(response.body).to.deep.equal({
+        error: 'Error submitting button action. Please try again.',
+      });
+    });
+
+    it('should handle ICM service exceptions', async () => {
+      const testData = {
+        tokenId: 'exception-token',
+        savedForm: 'form-data-json',
+        config: { action: 'submit' },
+      };
+
+      submitForPortalActionStub.rejects(new Error('Network connection failed'));
+
+      const response = await request(Server)
+        .post('/api/submitForPortalAction')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(500);
+
+      expect(response.body).to.deep.equal({
+        error: 'Network connection failed',
+      });
+    });
+
+    it('should handle non-Error exceptions in try-catch', async () => {
+      const testData = {
+        tokenId: 'unknown-error-token',
+        savedForm: 'form-data-json',
+        config: { action: 'submit' },
+      };
+
+      submitForPortalActionStub.rejects('Unknown error occurred');
+
+      const response = await request(Server)
+        .post('/api/submitForPortalAction')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(500);
+
+      expect(response.body).to.deep.equal({
+        error: 'Internal server error',
+      });
+    });
+
+    it('should pass through complex config structures', async () => {
+      const testData = {
+        tokenId: 'complex-token',
+        savedForm: JSON.stringify({
+          formData: { field1: 'value1', field2: 'value2' },
+          metadata: { version: '2.0', lastModified: '2023-01-01' },
+        }),
+        config: {
+          action: 'submit',
+          options: {
+            validate: true,
+            notify: ['admin@example.com'],
+            workflow: 'approval',
+            priority: 'high',
+          },
+          routing: {
+            successUrl: '/success',
+            errorUrl: '/error',
+          },
+        },
+      };
+
+      submitForPortalActionStub.resolves({
+        success: true,
+        data: {
+          success: true,
+          actionId: 'complex-action-789',
+          workflowId: 'workflow-123',
+        },
+      });
+
+      const response = await request(Server)
+        .post('/api/submitForPortalAction')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(200);
+
+      expect(response.body).to.deep.equal({
+        success: true,
+        actionId: 'complex-action-789',
+        workflowId: 'workflow-123',
+      });
+
+      expect(submitForPortalActionStub.calledOnce).to.be.true;
+      const data = submitForPortalActionStub.getCall(0).args[0];
+      expect(data).to.deep.equal(testData);
+    });
+  });
+
+  describe('loadBoundForm endpoint', () => {
+    it('should successfully load and bind form data with ICM integration', async () => {
+      const testData = {
+        attachmentId: 'test-attachment-123',
+        username: 'testuser',
+        isPortalIntegrated: false,
+      };
+
+      const mockFormData = {
+        form_definition: { elements: [{ uuid: 'field1', type: 'text' }] },
+        data: { field1: 'test value' },
+        metadata: { attachmentId: 'test-attachment-123' },
+      };
+
+      const boundFormData = {
+        form_definition: {
+          elements: [{ uuid: 'field1', type: 'text', value: 'test value' }],
+        },
+        data: { field1: 'test value' },
+        metadata: { attachmentId: 'test-attachment-123' },
+        bound: true,
+      };
+
+      loadICMDataStub.resolves({ success: true, data: mockFormData });
+      bindFormDataStub.resolves(boundFormData);
+
+      const response = await request(Server)
+        .post('/api/loadBoundForm')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(200);
+
+      expect(response.body).to.deep.equal(boundFormData);
+
+      expect(loadICMDataStub.calledOnce).to.be.true;
+      expect(bindFormDataStub.calledOnce).to.be.true;
+
+      const [icmData, token] = loadICMDataStub.getCall(0).args;
+      expect(icmData).to.deep.equal({
+        attachmentId: 'test-attachment-123',
+        username: 'testuser',
+        originalServer: undefined,
+      });
+      expect(token).to.be.undefined;
+
+      const boundData = bindFormDataStub.getCall(0).args[0];
+      expect(boundData).to.deep.equal(mockFormData);
+    });
+
+    it('should successfully load and bind form data with portal integration', async () => {
+      const testData = {
+        attachmentId: 'portal-attachment-456',
+        isPortalIntegrated: true,
+      };
+
+      const mockPortalData = {
+        form_definition: {
+          elements: [{ uuid: 'portalField', type: 'select' }],
+        },
+        data: { portalField: 'portal value' },
+        metadata: { source: 'portal' },
+      };
+
+      const boundPortalData = {
+        form_definition: {
+          elements: [
+            { uuid: 'portalField', type: 'select', value: 'portal value' },
+          ],
+        },
+        data: { portalField: 'portal value' },
+        metadata: { source: 'portal' },
+        bound: true,
+      };
+
+      loadPortalFormStub.resolves({ success: true, data: mockPortalData });
+      bindFormDataStub.resolves(boundPortalData);
+
+      const response = await request(Server)
+        .post('/api/loadBoundForm')
+        .set('Authorization', 'Bearer portal-token-123')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(200);
+
+      expect(response.body).to.deep.equal(boundPortalData);
+
+      expect(loadPortalFormStub.calledOnce).to.be.true;
+      expect(bindFormDataStub.calledOnce).to.be.true;
+
+      const [portalData, token, originalServer] =
+        loadPortalFormStub.getCall(0).args;
+      expect(portalData).to.deep.equal({
+        attachmentId: 'portal-attachment-456',
+      });
+      expect(token).to.equal('portal-token-123');
+      expect(originalServer).to.be.undefined;
+    });
+
+    it('should handle ICM service error during data loading', async () => {
+      const testData = {
+        attachmentId: 'invalid-attachment',
+        username: 'testuser',
+        isPortalIntegrated: false,
+      };
+
+      loadICMDataStub.resolves({
+        success: false,
+        error: 'Attachment not found',
+        status: 404,
+      });
+
+      const response = await request(Server)
+        .post('/api/loadBoundForm')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(404);
+
+      expect(response.body).to.deep.equal({ error: 'Attachment not found' });
+
+      expect(loadICMDataStub.calledOnce).to.be.true;
+      expect(bindFormDataStub.called).to.be.false;
+    });
+
+    it('should handle portal service error during data loading', async () => {
+      const testData = {
+        attachmentId: 'invalid-portal-form',
+        isPortalIntegrated: true,
+      };
+
+      loadPortalFormStub.resolves({
+        success: false,
+        error: 'Portal form access denied',
+        status: 403,
+      });
+
+      const response = await request(Server)
+        .post('/api/loadBoundForm')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(403);
+
+      expect(response.body).to.deep.equal({
+        error: 'Portal form access denied',
+      });
+
+      expect(loadPortalFormStub.calledOnce).to.be.true;
+      expect(bindFormDataStub.called).to.be.false;
+    });
+
+    it('should handle data binding errors', async () => {
+      const testData = {
+        attachmentId: 'binding-error-attachment',
+        username: 'testuser',
+        isPortalIntegrated: false,
+      };
+
+      const mockFormData = {
+        form_definition: { elements: [{ uuid: 'field1', type: 'text' }] },
+        data: { field1: 'test value' },
+      };
+
+      loadICMDataStub.resolves({ success: true, data: mockFormData });
+      bindFormDataStub.rejects(new Error('Data binding failed'));
+
+      const response = await request(Server)
+        .post('/api/loadBoundForm')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(500);
+
+      expect(response.body).to.deep.equal({ error: 'Data binding failed' });
+
+      expect(loadICMDataStub.calledOnce).to.be.true;
+      expect(bindFormDataStub.calledOnce).to.be.true;
+    });
+
+    it('should pass through originalServer header correctly', async () => {
+      const testData = {
+        attachmentId: 'server-test-attachment',
+        username: 'testuser',
+        isPortalIntegrated: false,
+      };
+
+      const mockFormData = {
+        form_definition: { elements: [] },
+        data: {},
+        metadata: {},
+      };
+
+      loadICMDataStub.resolves({ success: true, data: mockFormData });
+      bindFormDataStub.resolves({ ...mockFormData, bound: true });
+
+      await request(Server)
+        .post('/api/loadBoundForm')
+        .set('x-original-server', 'https://test-server.example.com')
+        .send(testData)
+        .expect(200);
+
+      const [icmData] = loadICMDataStub.getCall(0).args;
+      expect(icmData.originalServer).to.equal(
+        'https://test-server.example.com'
+      );
+    });
+  });
+
+  describe('saveFormData endpoint', () => {
+    it('should successfully save form data with save action', async () => {
+      const testData = {
+        action: 'save',
+        formState: { field1: 'value1', field2: 'value2' },
+        groupState: { group1: 'groupValue' },
+        formDefinition: { title: 'Test Form', elements: [] },
+        metadata: { version: '1.0' },
+        items: [{ id: 'item1', value: 'test' }],
+        sessionParams: { sessionId: 'session-123' }
+      };
+
+      saveFormDataStub.resolves({
+        success: true,
+        data: { saved: true, action: 'save' }
+      });
+
+      const response = await request(Server)
+        .post('/api/saveFormData')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(200);
+
+      expect(response.body).to.deep.equal({
+        saved: true,
+        action: 'save'
+      });
+
+      expect(saveFormDataStub.calledOnce).to.be.true;
+      const [data, token] = saveFormDataStub.getCall(0).args;
+      expect(data).to.deep.equal(testData);
+      expect(token).to.be.undefined;
+    });
+
+    it('should successfully save form data with save_and_close action using token', async () => {
+      const testData = {
+        action: 'save_and_close',
+        formState: { field1: 'value1' },
+        groupState: {},
+        formDefinition: { title: 'Test Form' },
+        metadata: { version: '1.0' },
+        items: [],
+        sessionParams: { sessionId: 'session-456' }
+      };
+
+      saveFormDataStub.resolves({
+        success: true,
+        data: { saved: true, unlocked: true, action: 'save_and_close' }
+      });
+
+      const response = await request(Server)
+        .post('/api/saveFormData')
+        .set('Authorization', 'Bearer test-token-123')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(200);
+
+      expect(response.body).to.deep.equal({
+        saved: true,
+        unlocked: true,
+        action: 'save_and_close'
+      });
+
+      expect(saveFormDataStub.calledOnce).to.be.true;
+      const [data, token] = saveFormDataStub.getCall(0).args;
+      expect(data).to.deep.equal(testData);
+      expect(token).to.equal('test-token-123');
+    });
+
+    it('should handle validation errors from service', async () => {
+      const testData = {
+        action: 'save',
+        formState: null,
+        groupState: {},
+        formDefinition: null
+      };
+
+      saveFormDataStub.resolves({
+        success: false,
+        error: 'Invalid form data: formState and formDefinition are required',
+        status: 400
+      });
+
+      const response = await request(Server)
+        .post('/api/saveFormData')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(400);
+
+      expect(response.body).to.deep.equal({
+        error: 'Invalid form data: formState and formDefinition are required'
+      });
+    });
+
+    it('should handle service error with default status 500', async () => {
+      const testData = {
+        action: 'save',
+        formState: { field1: 'value1' },
+        groupState: {},
+        formDefinition: { title: 'Test Form' },
+        metadata: {},
+        items: [],
+        sessionParams: {}
+      };
+
+      saveFormDataStub.resolves({
+        success: false,
+        error: 'Internal save error'
+      });
+
+      const response = await request(Server)
+        .post('/api/saveFormData')
+        .send(testData)
+        .expect('Content-Type', /json/)
+        .expect(500);
+
+      expect(response.body).to.deep.equal({
+        error: 'Internal save error'
+      });
     });
   });
 });

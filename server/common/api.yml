@@ -60,16 +60,6 @@ paths:
         200:
           description: Returns message with ID
 
-  /preview:
-    get:
-      tags:
-        - Kiln Renderer
-        - ICM User Interface
-      description: Render an interactive preview-only form
-      responses:
-        200:
-          description: Form rendered
-
   /view:
     get:
       tags:
@@ -88,21 +78,6 @@ paths:
       responses:
         200:
           description: Form rendered
-
-  /saveForm:
-    post:
-      tags:
-        - Communications Layer
-        - Kiln Interface
-      description: Save form data
-      parameters:
-        - in: body
-          name: data
-          schema:
-            type: object
-      responses:
-        200:
-          description: Data saved
 
   /generateForm:
     post:
@@ -167,7 +142,7 @@ paths:
         200:
           description: ICM data loaded successfully
 
-  /clearICMLockedFlag:
+  /unlockICMData:
     post:
       tags:
         - Communications Layer
@@ -227,38 +202,6 @@ paths:
         500:
           description: Internal server error
 
-  /generatePDFFromJson:
-    post:
-      tags:
-        - Communications Layer
-        - ICM User Interface
-      description: Generate a PDF from JSON
-      parameters:
-        - in: body
-          name: jsonData
-          required: true
-          schema:
-            type: object
-      responses:
-        200:
-          description: PDF generated successfully
-
-  /generateNewTemplate:
-    post:
-      tags:
-        - Communications Layer
-        - ICM User Interface
-      description: Generate a new form template
-      parameters:
-        - in: body
-          name: templateData
-          required: true
-          schema:
-            type: object
-      responses:
-        200:
-          description: Template generated successfully
-
   /loadPortalForm:
     post:
       tags:
@@ -278,6 +221,38 @@ paths:
           description: Bad request - invalid data
         404:
           description: Portal form not found
+        500:
+          description: Internal server error
+
+  /submitForPortalAction:
+    post:
+      tags:
+        - Communications Layer
+        - ICM User Interface
+      description: Submit portal action
+      parameters:
+        - in: body
+          name: actionData
+          required: true
+          schema:
+            type: object
+            properties:
+              tokenId:
+                type: string
+                description: Token ID for authentication
+              savedForm:
+                type: string
+                description: Saved form data
+              config:
+                type: object
+                description: Action configuration
+      responses:
+        200:
+          description: Portal action submitted successfully
+        400:
+          description: Bad request - missing required fields
+        401:
+          description: Unauthorized
         500:
           description: Internal server error
 
@@ -321,3 +296,181 @@ paths:
         404:
           description: Example not found
 
+  /generatePortalForm:
+    post:
+      tags:
+        - Communications Layer
+      summary: Generate portal form
+      description: Generates a portal form JSON payload.
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: payload
+          required: true
+          schema:
+            type: object
+      responses:
+        200:
+          description: Portal form generated
+          schema:
+            type: object
+        400:
+          description: Bad request
+        401:
+          description: Unauthorized
+        500:
+          description: Internal server error
+
+  /loadBoundForm:
+    post:
+      tags:
+        - Communications Layer
+        - Kiln Interface
+      summary: Load form data with binding applied
+      description: Loads form data and applies data binding logic in the backend for better separation of concerns
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: formRequest
+          required: true
+          schema:
+            type: object
+            properties:
+              attachmentId:
+                type: string
+                description: The attachment ID for the form
+              username:
+                type: string
+                description: Username for authentication
+              token:
+                type: string
+                description: Authentication token
+              isPortalIntegrated:
+                type: boolean
+                description: Whether to use portal integration
+            required:
+              - attachmentId
+      responses:
+        200:
+          description: Form data loaded and bound successfully
+          schema:
+            type: object
+            properties:
+              form_definition:
+                type: object
+                description: Form definition with data binding applied
+              data:
+                type: object
+                description: Original saved data
+              metadata:
+                type: object
+                description: Form metadata
+              bound:
+                type: boolean
+                description: Flag indicating data has been bound
+        400:
+          description: Bad request - missing required parameters
+        401:
+          description: Unauthorized - authentication required
+        500:
+          description: Internal server error
+
+  /bindPreviewForm:
+    post:
+      tags:
+        - Communications Layer
+        - Kiln Interface
+      summary: Bind data to form definition for preview
+      description: Applies data binding to form definition and data for preview functionality in kiln-v2
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: requestBody
+          required: true
+          schema:
+            type: object
+            properties:
+              formData:
+                type: object
+                description: Form data containing form_definition, data, and metadata
+                properties:
+                  form_definition:
+                    type: object
+                    description: The form definition JSON
+                  data:
+                    description: The saved form data to bind
+                  metadata:
+                    description: Form metadata
+            required:
+              - formData
+      responses:
+        200:
+          description: Form data bound successfully
+          schema:
+            type: object
+            properties:
+              form_definition:
+                type: object
+                description: Form definition with data binding applied
+              data:
+                type: object
+                description: Original saved data
+              metadata:
+                type: object
+                description: Form metadata
+              bound:
+                type: boolean
+                description: Flag indicating data has been bound
+        400:
+          description: Bad request - missing formData parameter
+        500:
+          description: Internal server error
+
+  /saveFormData:
+    post:
+      tags:
+        - Communications Layer
+        - Kiln Interface
+      summary: Unified save form data endpoint
+      description: Handles both save and save-and-close actions with server-side orchestration. Replaces separate saveICMData and unlockICMData calls with unified backend logic.
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: saveRequest
+          required: true
+          schema:
+            type: object
+            additionalProperties: true
+      responses:
+        200:
+          description: Form data saved successfully
+          schema:
+            type: object
+            properties:
+              saved:
+                type: boolean
+                description: Whether the save operation succeeded
+              unlocked:
+                type: boolean
+                description: Whether unlock succeeded (only present for save_and_close)
+              action:
+                type: string
+                description: The action that was performed
+        400:
+          description: Bad request - missing required fields
+        401:
+          description: Unauthorized - authentication required
+        500:
+          description: Internal server error
