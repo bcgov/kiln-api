@@ -166,7 +166,7 @@ export function createAuthMiddleware(options: { requireAuth?: boolean } = {}) {
               preferred_username: decoded.preferred_username,
               ...decoded,
             };
-            l.debug(`Keycloak auth successful for user: ${req.user.username}`);
+            l.debug(`Keycloak auth successful for user: ${req.user?.username}`);
             return next();
           } catch (error) {
             l.warn('Keycloak token verification failed:', error);

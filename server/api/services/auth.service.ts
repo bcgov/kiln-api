@@ -62,7 +62,7 @@ class AuthService {
     return !!(context.username || context.userId);
   }
 
-  hasRole(context: AuthContext, role: string): boolean {
+  hasRole(_context: AuthContext, _role: string): boolean {
     return true;
   }
 
