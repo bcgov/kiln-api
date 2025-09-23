@@ -1,20 +1,20 @@
 import { Request, Response } from 'express';
 import ICMService from '../services/icm.service';
+import AuthService from '../services/auth.service';
+import { AuthRequest } from '../middlewares/auth.middleware';
 
 export class CommunicationsController {
   async generateForm(req: Request, res: Response): Promise<void> {
+    const authReq = req as AuthRequest;
+    const authContext = AuthService.extractAuthContext(authReq);
     const originalServer = req.headers['x-original-server'] as string;
     const { token, username, ...params } = req.body;
 
-    const authHeader = req.headers.authorization;
-    const authToken =
-      token ||
-      (authHeader?.startsWith('Bearer ')
-        ? authHeader.substring(7)
-        : authHeader);
+    const authToken = token || authContext.token;
+    const effectiveUsername = username || authContext.username;
 
     const result = await ICMService.generateForm(
-      { ...params, username, originalServer },
+      { ...params, username: effectiveUsername, originalServer },
       authToken
     );
 
@@ -30,17 +30,15 @@ export class CommunicationsController {
   }
 
   async saveICMData(req: Request, res: Response): Promise<void> {
+    const authReq = req as AuthRequest;
+    const authContext = AuthService.extractAuthContext(authReq);
     const { attachmentId, OfficeName, username, savedForm } = req.body;
 
-    const authHeader = req.headers.authorization;
-    const token = authHeader?.startsWith('Bearer ')
-      ? authHeader.substring(7)
-      : authHeader;
-
-    // TODO: Implement authentication/authorization when available
+    const token = authContext.token;
+    const effectiveUsername = username || authContext.username;
 
     const result = await ICMService.saveICMData(
-      { attachmentId, OfficeName, username, savedForm },
+      { attachmentId, OfficeName, username: effectiveUsername, savedForm },
       token
     );
 
@@ -52,18 +50,16 @@ export class CommunicationsController {
   }
 
   async loadICMData(req: Request, res: Response): Promise<void> {
+    const authReq = req as AuthRequest;
+    const authContext = AuthService.extractAuthContext(authReq);
     const originalServer = req.headers['x-original-server'] as string;
     const { token, username, ...params } = req.body;
 
-    const authHeader = req.headers.authorization;
-    const authToken =
-      token ||
-      (authHeader?.startsWith('Bearer ')
-        ? authHeader.substring(7)
-        : authHeader);
+    const authToken = token || authContext.token;
+    const effectiveUsername = username || authContext.username;
 
     const result = await ICMService.loadICMData(
-      { ...params, username, originalServer },
+      { ...params, username: effectiveUsername, originalServer },
       authToken
     );
 

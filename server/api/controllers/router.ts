@@ -5,60 +5,69 @@ import DefaultController from './default.controller';
 import CommunicationsController from './communications.controller';
 import RendererController from './renderer.controller';
 import examplesRouter from './examples/router';
+import {
+  authMiddleware,
+  optionalAuthMiddleware,
+} from '../middlewares/auth.middleware';
 
 const router = express.Router();
 
-// Communications Layer Routes
-router.post('/saveICMData', (req, res) =>
+router.post('/saveICMData', authMiddleware, (req, res) =>
   CommunicationsController.saveICMData(req, res)
 );
-router.post('/generateForm', (req, res) =>
+router.post('/generateForm', optionalAuthMiddleware, (req, res) =>
   CommunicationsController.generateForm(req, res)
 );
-router.post('/editForm', (req, res) =>
+router.post('/editForm', authMiddleware, (req, res) =>
   CommunicationsController.editFormData(req, res)
 );
-router.post('/loadICMData', (req, res) =>
+router.post('/loadICMData', authMiddleware, (req, res) =>
   CommunicationsController.loadICMData(req, res)
 );
-router.post('/unlockICMData', (req, res) =>
+router.post('/unlockICMData', authMiddleware, (req, res) =>
   CommunicationsController.unlockICMData(req, res)
 );
-router.post('/loadSavedJson', (req, res) =>
+router.post('/loadSavedJson', authMiddleware, (req, res) =>
   CommunicationsController.loadSavedJson(req, res)
 );
-router.post('/pdfRender/:pdfTemplateId', (req, res) =>
+router.post('/pdfRender/:pdfTemplateId', optionalAuthMiddleware, (req, res) =>
   CommunicationsController.pdfRender(req, res)
 );
-router.post('/generatePortalForm', (req, res) =>
+router.post('/generatePortalForm', optionalAuthMiddleware, (req, res) =>
   CommunicationsController.generatePortalForm(req, res)
 );
-router.post('/loadPortalForm', (req, res) =>
+router.post('/loadPortalForm', optionalAuthMiddleware, (req, res) =>
   CommunicationsController.loadPortalForm(req, res)
 );
-router.post('/submitForPortalAction', (req, res) =>
+router.post('/submitForPortalAction', authMiddleware, (req, res) =>
   CommunicationsController.submitForPortalAction(req, res)
 );
-router.post('/loadBoundForm', (req, res) =>
+router.post('/loadBoundForm', optionalAuthMiddleware, (req, res) =>
   CommunicationsController.loadBoundForm(req, res)
 );
-router.post('/bindPreviewForm', (req, res) =>
+router.post('/bindPreviewForm', optionalAuthMiddleware, (req, res) =>
   CommunicationsController.bindPreviewForm(req, res)
 );
-router.post('/saveFormData', (req, res) =>
+router.post('/saveFormData', authMiddleware, (req, res) =>
   CommunicationsController.saveFormData(req, res)
 );
 
-// Kiln Renderer Routes
-router.get('/view', (req, res) => RendererController.viewForm(req, res));
-router.get('/edit', (req, res) => RendererController.editForm(req, res));
+router.get('/view', optionalAuthMiddleware, (req, res) =>
+  RendererController.viewForm(req, res)
+);
+router.get('/edit', authMiddleware, (req, res) =>
+  RendererController.editForm(req, res)
+);
 
 // Examples Routes
 router.use('/examples', examplesRouter);
 
-// Default / Health Check Routes (put last to avoid conflicts)
 router.get('/', (req, res) => DefaultController.all(req, res));
-router.post('/', (req, res) => DefaultController.create(req, res));
-router.get('/:id', (req, res) => DefaultController.byId(req, res));
+router.post('/', optionalAuthMiddleware, (req, res) =>
+  DefaultController.create(req, res)
+);
+router.get('/:id', optionalAuthMiddleware, (req, res) =>
+  DefaultController.byId(req, res)
+);
 
 export default router;

@@ -6,11 +6,11 @@
   "scripts": {
     "start": "node dist/index.js",
     "compile": "ts-node build.ts && tsc",
-    "dev": "kill-port 3000 && nodemon server/index.ts | pino-pretty",
+    "dev": "kill-port 3001 && nodemon server/index.ts | pino-pretty",
     "dev:debug": "nodemon --exec \"node -r ts-node/register --inspect-brk\" server/index.ts | pino-pretty",
     "lint": "eslint -c .eslintrc.js \"{server, test}/**/*.{js,ts,tsx}\" --quiet",
     "lint:fix": "eslint -c .eslintrc.js \"{server, test}/**/*.{js,ts,tsx}\" --quiet --fix",
-    "test": "mocha -r ts-node/register test/**/*.ts --exit",
+    "test": "kill-port 3001 && mocha -r ts-node/register test/**/*.ts --exit",
     "test:debug": "mocha -r ts-node/register --inspect-brk test/**/*.ts --exit"
   },
   "dependencies": {
@@ -19,6 +19,8 @@
     "cookie-parser": "^1.4.6",
     "dotenv": "^16.0.0",
     "express": "^4.17.3",
+    "jsonwebtoken": "^9.0.2",
+    "jwks-rsa": "^3.2.0",
     "pino": "^7.8.1",
     "swagger-express-middleware": "^4.0.2"
   },
@@ -27,6 +29,7 @@
     "@types/chai": "^4.3.0",
     "@types/cookie-parser": "^1.4.2",
     "@types/express": "^4.17.13",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/mocha": "^9.1.0",
     "@types/node": "^17.0.21",
     "@types/pino": "^7.0.4",
