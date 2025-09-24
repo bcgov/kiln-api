@@ -25,10 +25,6 @@ export class CommunicationsController {
     }
   }
 
-  editFormData(req: Request, res: Response): void {
-    res.json({ endpoint: 'editForm', payload: req.body });
-  }
-
   async saveICMData(req: AuthenticatedRequest, res: Response): Promise<void> {
     const { attachmentId, OfficeName, savedForm } = req.body;
     const token = getAuthToken(req);

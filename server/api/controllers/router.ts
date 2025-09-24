@@ -15,9 +15,6 @@ router.post('/saveICMData', extractAuth, (req, res) =>
 router.post('/generateForm', extractAuth, (req, res) =>
   CommunicationsController.generateForm(req, res)
 );
-router.post('/editForm', extractAuth, (req, res) =>
-  CommunicationsController.editFormData(req, res)
-);
 router.post('/loadICMData', extractAuth, (req, res) =>
   CommunicationsController.loadICMData(req, res)
 );
