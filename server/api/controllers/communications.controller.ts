@@ -270,6 +270,32 @@ export class CommunicationsController {
     }
   }
 
+  async generateNewTemplate(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const requestData = req.body;
+      const authToken = getAuthToken(req);
+      const originalServer = req.headers['x-original-server'] as string | undefined;
+
+      const result = await ICMService.generateNewTemplate(
+        {
+          ...requestData,
+          ...(originalServer ? { originalServer } : {}),
+        },
+        authToken
+      );
+
+      if (result.success) {
+        res.status(200).json(result.data);
+      } else {
+        res.status(result.status || 400).json({ error: result.error });
+      }
+    } catch (error) {
+      let errorMessage = 'Internal server error';
+      if (error instanceof Error && error.message) errorMessage = error.message;
+      res.status(500).json({ error: errorMessage });
+    }
+  }
+
   async saveFormData(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const {

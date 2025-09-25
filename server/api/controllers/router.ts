@@ -36,6 +36,9 @@ router.post('/loadPortalForm', extractAuth, (req, res) =>
 router.post('/submitForPortalAction', extractAuth, (req, res) =>
   CommunicationsController.submitForPortalAction(req, res)
 );
+router.post('/generateNewTemplate', extractAuth, (req, res) =>
+  CommunicationsController.generateNewTemplate(req, res)
+);
 router.post('/loadBoundForm', extractAuth, (req, res) =>
   CommunicationsController.loadBoundForm(req, res)
 );
