@@ -21,8 +21,8 @@ router.post('/editForm', (req, res) =>
 router.post('/loadICMData', (req, res) =>
   CommunicationsController.loadICMData(req, res)
 );
-router.post('/clearICMLockedFlag', (req, res) =>
-  CommunicationsController.clearICMLockedFlag(req, res)
+router.post('/unlockICMData', (req, res) =>
+  CommunicationsController.unlockICMData(req, res)
 );
 router.post('/loadSavedJson', (req, res) =>
   CommunicationsController.loadSavedJson(req, res)
@@ -47,6 +47,9 @@ router.post('/loadBoundForm', (req, res) =>
 );
 router.post('/bindPreviewForm', (req, res) =>
   CommunicationsController.bindPreviewForm(req, res)
+);
+router.post('/saveFormData', (req, res) =>
+  CommunicationsController.saveFormData(req, res)
 );
 
 // Kiln Renderer Routes
