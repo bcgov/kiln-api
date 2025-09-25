@@ -94,22 +94,6 @@ paths:
         200:
           description: Form generated
 
-  /editForm:
-    post:
-      tags:
-        - Communications Layer
-        - Kiln Interface
-      description: Edit form data
-      parameters:
-        - in: body
-          name: data
-          required: true
-          schema:
-            type: object
-      responses:
-        200:
-          description: Form data edited successfully
-
   /saveICMData:
     post:
       tags:
