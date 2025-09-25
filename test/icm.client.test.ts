@@ -1045,8 +1045,8 @@ describe('ICMClient', () => {
         'https://api.example.com/portal/submit-action';
       process.env.COMM_API_TIMEOUT = '5000';
 
-      const mockPayload = { 
-        tokenId: 'token-123', 
+      const mockPayload = {
+        tokenId: 'token-123',
         savedForm: 'form-data',
         config: { action: 'submit' }
       };
@@ -1091,8 +1091,8 @@ describe('ICMClient', () => {
         'https://api.example.com/portal/submit-action';
       delete process.env.COMM_API_TIMEOUT;
 
-      const mockPayload = { 
-        tokenId: 'token-789', 
+      const mockPayload = {
+        tokenId: 'token-789',
         savedForm: 'form-data',
         config: { action: 'default-timeout' }
       };
@@ -1116,8 +1116,8 @@ describe('ICMClient', () => {
       process.env.COMM_API_SUBMIT_TO_ACTION_ENDPOINT_URL =
         'https://api.example.com/portal/submit-action';
 
-      const mockPayload = { 
-        tokenId: 'invalid-token', 
+      const mockPayload = {
+        tokenId: 'invalid-token',
         savedForm: 'form-data',
         config: { action: 'submit' }
       };
@@ -1151,8 +1151,8 @@ describe('ICMClient', () => {
       process.env.COMM_API_SUBMIT_TO_ACTION_ENDPOINT_URL =
         'https://api.example.com/portal/submit-action';
 
-      const mockPayload = { 
-        tokenId: 'error-token', 
+      const mockPayload = {
+        tokenId: 'error-token',
         savedForm: 'form-data',
         config: { action: 'submit' }
       };
@@ -1182,8 +1182,8 @@ describe('ICMClient', () => {
       process.env.COMM_API_SUBMIT_TO_ACTION_ENDPOINT_URL =
         'https://api.example.com/portal/submit-action';
 
-      const mockPayload = { 
-        tokenId: 'network-error-token', 
+      const mockPayload = {
+        tokenId: 'network-error-token',
         savedForm: 'form-data',
         config: { action: 'submit' }
       };
@@ -1205,8 +1205,8 @@ describe('ICMClient', () => {
       process.env.COMM_API_SUBMIT_TO_ACTION_ENDPOINT_URL =
         'https://api.example.com/portal/submit-action';
 
-      const mockPayload = { 
-        tokenId: 'created-token', 
+      const mockPayload = {
+        tokenId: 'created-token',
         savedForm: 'form-data',
         config: { action: 'create' }
       };
@@ -1281,6 +1281,117 @@ describe('ICMClient', () => {
           sinon.match.any
         )
       ).to.be.true;
+    });
+  });
+
+  describe('generateNewTemplate', () => {
+    it('should throw error when COMM_API_GENERATE_NEWTEMPLATE_ENDPOINT_URL is not set', async () => {
+      delete process.env.COMM_API_GENERATE_NEWTEMPLATE_ENDPOINT_URL;
+
+      try {
+        await icmClient.generateNewTemplate({ attachmentId: 'A1' });
+        expect.fail('Should have thrown an error');
+      } catch (error: any) {
+        expect(error.message).to.equal(
+          'COMM_API_GENERATE_NEWTEMPLATE_ENDPOINT_URL environment variable is required'
+        );
+      }
+    });
+
+    it('should make successful API call and return proper response', async () => {
+      process.env.COMM_API_GENERATE_NEWTEMPLATE_ENDPOINT_URL =
+        'https://api.example.com/icm/generateNewTemplate';
+      process.env.COMM_API_TIMEOUT = '5000';
+
+      const mockPayload = {
+        attachmentId: '1-4ZYB80E',
+        formId: 'CF8787',
+        area: 'Service Request',
+        CaseId: '1-4ZYB34V',
+        username: 'DOKULSKI',
+      };
+      const mockResponseData = { errorCode: 0, message: 'Successfully generated the form' };
+
+      axiosPostStub.resolves({
+        status: 200,
+        data: mockResponseData,
+      });
+
+      const result = await icmClient.generateNewTemplate(mockPayload);
+
+      expect(result.ok).to.be.true;
+      expect(result.status).to.equal(200);
+
+      const jsonData = await result.json();
+      expect(jsonData).to.deep.equal(mockResponseData);
+
+      expect(axiosPostStub.calledOnce).to.be.true;
+      expect(
+        axiosPostStub.calledWith(
+          'https://api.example.com/icm/generateNewTemplate',
+          mockPayload,
+          {
+            headers: { 'Content-Type': 'application/json' },
+            timeout: 5000,
+          }
+        )
+      ).to.be.true;
+    });
+
+    it('should include X-Original-Server header when originalServer is provided', async () => {
+      process.env.COMM_API_GENERATE_NEWTEMPLATE_ENDPOINT_URL =
+        'https://api.example.com/icm/generateNewTemplate';
+      process.env.COMM_API_TIMEOUT = '5000';
+
+      const mockPayload = {
+        attachmentId: '1-4ZYB80E',
+        formId: 'CF8787',
+        area: 'Service Request',
+      };
+      const originalServer = 'icm-dev.internal';
+
+      axiosPostStub.resolves({
+        status: 200,
+        data: { errorCode: 0, message: 'ok' },
+      });
+
+      const result = await icmClient.generateNewTemplate(mockPayload, originalServer);
+
+      expect(result.ok).to.be.true;
+      expect(result.status).to.equal(200);
+
+      expect(axiosPostStub.calledOnce).to.be.true;
+      const [, , config] = axiosPostStub.getCall(0).args;
+      expect(config.headers).to.deep.equal({
+        'Content-Type': 'application/json',
+        'X-Original-Server': originalServer,
+      });
+      expect(config.timeout).to.equal(5000);
+    });
+
+    it('should handle axios error responses properly', async () => {
+      process.env.COMM_API_GENERATE_NEWTEMPLATE_ENDPOINT_URL =
+        'https://api.example.com/icm/generateNewTemplate';
+
+      const mockPayload = { attachmentId: 'bad', formId: 'CF8787', area: 'Service Request' };
+      const mockErrorResponse = { error: 'The form cannot be generated.' };
+
+      const axiosError = {
+        response: {
+          status: 400,
+          data: mockErrorResponse,
+        },
+      };
+
+      axiosPostStub.rejects(axiosError);
+
+      const result = await icmClient.generateNewTemplate(mockPayload);
+
+      expect(result.ok).to.be.false;
+      expect(result.status).to.equal(400);
+
+      const jsonData = await result.json();
+      expect(jsonData).to.deep.equal(mockErrorResponse);
     });
   });
 });
