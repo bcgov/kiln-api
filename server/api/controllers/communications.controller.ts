@@ -274,7 +274,7 @@ export class CommunicationsController {
     try {
       const requestData = req.body;
       const authToken = getAuthToken(req);
-      const originalServer = req.headers['x-original-server'] as string | undefined;
+      const originalServer = req.headers['x-original-server'] as string;
 
       const result = await ICMService.generateNewTemplate(
         {
