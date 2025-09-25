@@ -270,7 +270,10 @@ export class CommunicationsController {
     }
   }
 
-  async generateNewTemplate(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async generateNewTemplate(
+    req: AuthenticatedRequest,
+    res: Response
+  ): Promise<void> {
     try {
       const requestData = req.body;
       const authToken = getAuthToken(req);
