@@ -1394,4 +1394,80 @@ describe('ICMClient', () => {
       expect(jsonData).to.deep.equal(mockErrorResponse);
     });
   });
+
+  describe('generatePdfFromJson', () => {
+    it('throws when COMM_API_GENERATE_PDF_FROM_JSON_ENDPOINT_URL is not set', async () => {
+      delete process.env.COMM_API_GENERATE_PDF_FROM_JSON_ENDPOINT_URL;
+
+      try {
+        await icmClient.generatePdfFromJson({ attachment: 'e30=' });
+        expect.fail('Should have thrown an error');
+      } catch (err: any) {
+        expect(err.message).to.equal(
+          'COMM_API_GENERATE_PDF_FROM_JSON_ENDPOINT_URL environment variable is required'
+        );
+      }
+    });
+
+    it('makes a successful API call and returns proper response', async () => {
+      process.env.COMM_API_GENERATE_PDF_FROM_JSON_ENDPOINT_URL =
+        'https://api.example.com/icm/generatePDFFromJson';
+      process.env.COMM_API_TIMEOUT = '5000';
+
+      const payload = { attachment: 'eyJmb28iOiJiYXIifQ==' };
+      const mockResponse = { errorCode: 0, errorMessage: '', pdf: 'JVBERi0xLjQK...' };
+
+      axiosPostStub.resolves({ status: 200, data: mockResponse });
+
+      const result = await icmClient.generatePdfFromJson(payload);
+
+      expect(result.ok).to.be.true;
+      expect(result.status).to.equal(200);
+      expect(await result.json()).to.deep.equal(mockResponse);
+
+      expect(
+        axiosPostStub.calledWith(
+          'https://api.example.com/icm/generatePDFFromJson',
+          payload,
+          { headers: { 'Content-Type': 'application/json' }, timeout: 5000 }
+        )
+      ).to.be.true;
+    });
+
+    it('includes X-Original-Server header when provided', async () => {
+      process.env.COMM_API_GENERATE_PDF_FROM_JSON_ENDPOINT_URL =
+        'https://api.example.com/icm/generatePDFFromJson';
+      process.env.COMM_API_TIMEOUT = '5000';
+
+      const payload = { attachment: 'e30=' };
+      const originalServer = 'icm-dev.internal';
+
+      axiosPostStub.resolves({ status: 200, data: { ok: true } });
+
+      await icmClient.generatePdfFromJson(payload, originalServer);
+
+      const call = axiosPostStub.getCall(0);
+      expect(call.args[0]).to.equal('https://api.example.com/icm/generatePDFFromJson');
+      expect(call.args[1]).to.deep.equal(payload);
+      expect(call.args[2].headers).to.include({ 'X-Original-Server': originalServer });
+    });
+
+    it('wraps axios errors as ICMJsonResponse (ok=false)', async () => {
+      process.env.COMM_API_GENERATE_PDF_FROM_JSON_ENDPOINT_URL =
+        'https://api.example.com/icm/generatePDFFromJson';
+
+      const payload = { attachment: 'e30=' };
+      const axiosError = {
+        response: { status: 400, data: { error: 'Invalid attachment' } },
+      } as any;
+
+      axiosPostStub.rejects(axiosError);
+
+      const result = await icmClient.generatePdfFromJson(payload);
+      expect(result.ok).to.be.false;
+      expect(result.status).to.equal(400);
+      expect(await result.json()).to.deep.equal({ error: 'Invalid attachment' });
+    });
+  });
+
 });

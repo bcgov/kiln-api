@@ -16,6 +16,7 @@ describe('Communications Controller', () => {
   let submitForPortalActionStub: sinon.SinonStub;
   let bindFormDataStub: sinon.SinonStub;
   let saveFormDataStub: sinon.SinonStub;
+  let generatePdfFromJsonStub: sinon.SinonStub;
 
   beforeEach(() => {
     loadICMDataStub = sinon.stub(ICMService, 'loadICMData');
@@ -28,6 +29,7 @@ describe('Communications Controller', () => {
     submitForPortalActionStub = sinon.stub(ICMService, 'submitForPortalAction');
     bindFormDataStub = sinon.stub(ICMService, 'bindFormData');
     saveFormDataStub = sinon.stub(ICMService, 'saveFormData');
+    generatePdfFromJsonStub = sinon.stub(ICMService, 'generatePdfFromJson');
   });
 
   afterEach(() => {
@@ -2240,4 +2242,65 @@ describe('Communications Controller', () => {
       });
     });
   });
+
+  describe('generatePdfFromJson endpoint', () => {
+    it('accepts raw JSON (controller base64-encodes) and returns PDF envelope (200)', async () => {
+      const mockData = { errorCode: 0, errorMessage: '', pdf: 'JVBERi0xLjQK...' };
+      generatePdfFromJsonStub.resolves({ success: true, data: mockData });
+
+      const response = await request(Server)
+        .post('/api/generatePDFFromJson')
+        .set('X-Original-Server', 'icm-dev.internal')
+        .send({ foo: 'bar', nested: { a: 1 } })
+        .expect('Content-Type', /json/)
+        .expect(200);
+
+      expect(response.body).to.deep.equal(mockData);
+      const [, originalServerArg] = generatePdfFromJsonStub.getCall(0).args;
+      expect(originalServerArg).to.equal('icm-dev.internal');
+    });
+
+    it('accepts {attachment: <base64>} shape and returns PDF envelope (200)', async () => {
+      const mockData = { errorCode: 0, errorMessage: '', pdf: 'BASE64PDF==' };
+      generatePdfFromJsonStub.resolves({ success: true, data: mockData });
+
+      const response = await request(Server)
+        .post('/api/generatePDFFromJson')
+        .send({ attachment: 'eyJmb28iOiJiYXIifQ==' })
+        .expect('Content-Type', /json/)
+        .expect(200);
+
+      expect(response.body).to.deep.equal(mockData);
+      expect(generatePdfFromJsonStub.calledOnce).to.be.true;
+    });
+
+    it('returns 400 when request body is empty/invalid', async () => {
+      const response = await request(Server)
+        .post('/api/generatePDFFromJson')
+        .send({})
+        .expect('Content-Type', /json/)
+        .expect(400);
+
+      expect(response.body).to.have.property('error');
+      expect(generatePdfFromJsonStub.called).to.be.false;
+    });
+
+    it('propagates service error status/message', async () => {
+      generatePdfFromJsonStub.resolves({
+        success: false,
+        status: 502,
+        error: 'Communication Layer unavailable',
+      });
+
+      const response = await request(Server)
+        .post('/api/generatePDFFromJson')
+        .send({ attachment: 'Zm9v' })
+        .expect('Content-Type', /json/)
+        .expect(502);
+
+      expect(response.body).to.deep.equal({ error: 'Communication Layer unavailable' });
+    });
+  });
+
+
 });

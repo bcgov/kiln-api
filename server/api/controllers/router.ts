@@ -51,6 +51,9 @@ router.post('/bindPreviewForm', (req, res) =>
 router.post('/saveFormData', (req, res) =>
   CommunicationsController.saveFormData(req, res)
 );
+router.post('/generatePDFFromJson', (req, res) =>
+  CommunicationsController.generatePdfFromJson(req, res)
+);
 
 // Kiln Renderer Routes
 router.get('/view', (req, res) => RendererController.viewForm(req, res));
