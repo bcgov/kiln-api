@@ -340,6 +340,47 @@ export class CommunicationsController {
       });
     }
   }
+
+  async generatePdfFromJson(req: Request, res: Response): Promise<void> {
+    try {
+      const originalServer = req.headers['x-original-server'] as string | undefined;
+      const body: any = req.body;
+
+      // Accept either { attachment: <base64> }, an array [<base64>], or raw JSON
+      let attachmentBase64: string | undefined;
+
+      if (body && typeof body.attachment === 'string' && body.attachment.trim()) {
+        attachmentBase64 = body.attachment.trim();
+      } else if (Array.isArray(body) && typeof body[0] === 'string') {
+        attachmentBase64 = String(body[0]);
+      } else if (body && typeof body === 'object') {
+        const { token, username, originalServer: _ignored, ...formJson } = body;
+        if (Object.keys(formJson || {}).length > 0) {
+          const jsonStr = JSON.stringify(formJson);
+          attachmentBase64 = Buffer.from(jsonStr, 'utf8').toString('base64');
+        }
+      }
+
+      if (!attachmentBase64) {
+        res.status(400).json({ error: 'attachment (base64) or a JSON body is required' });
+        return;
+      }
+
+      const result = await ICMService.generatePdfFromJson(
+        { attachment: attachmentBase64 },
+        originalServer
+      );
+
+      if (result.success) {
+        res.status(200).json(result.data);
+      } else {
+        res.status(result.status ?? 500).json({ error: result.error });
+      }
+    } catch (error) {
+      res.status(500).json({ error: error instanceof Error ? error.message : 'Internal server error' });
+    }
+  }
+
 }
 
 export default new CommunicationsController();

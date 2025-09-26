@@ -558,7 +558,7 @@ export class ICMService {
 
       // call CommLayer
       const response = await this.icmClient.generateNewTemplate(data, originalServer);
-      
+
       return this.handleResponse(
         response,
         'The form cannot be generated.'
@@ -766,7 +766,7 @@ export class ICMService {
                         rowState as Record<string, any>
                       ) &&
                       (rowState as Record<string, any>)[child.uuid] !==
-                        undefined
+                      undefined
                     ) {
                       row[child.uuid] = (rowState as Record<string, any>)[
                         child.uuid
@@ -939,6 +939,23 @@ export class ICMService {
       ) as SaveFormDataResult;
     }
   }
+
+  async generatePdfFromJson(
+    data: { attachment: string },
+    originalServer?: string
+  ): Promise<ICMDataResult> {
+    try {
+      if (!data?.attachment || typeof data.attachment !== 'string') {
+        return { success: false, status: 400, error: 'attachment (base64) is required' };
+      }
+
+      const response = await this.icmClient.generatePdfFromJson(data, originalServer);
+      return this.handleResponse(response, 'Error generating PDF from JSON. Please try again.');
+    } catch (error) {
+      return this.handleError(error, 'Failed to generate PDF from JSON');
+    }
+  }
+
 }
 
 export default new ICMService();

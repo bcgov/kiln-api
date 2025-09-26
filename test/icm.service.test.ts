@@ -1919,4 +1919,51 @@ describe('ICMService', () => {
       expect(icmClientStub.unlockICMData.called).to.be.false;
     });
   });
+
+  describe('generatePdfFromJson', () => {
+    it('successfully calls Comm Layer and returns success payload', async () => {
+      const req = { attachment: 'eyJ0ZXN0IjoxfQ==' };
+      const mockResponse = {
+        ok: true,
+        status: 200,
+        json: sinon.stub().resolves({ errorCode: 0, errorMessage: '', pdf: 'JVBERi0...' }),
+      };
+
+      icmClientStub.generatePdfFromJson.resolves(mockResponse as any);
+
+      const result = await icmService.generatePdfFromJson(req, 'icm-dev.internal');
+
+      expect(result.success).to.be.true;
+      expect(result.data).to.deep.equal({ errorCode: 0, errorMessage: '', pdf: 'JVBERi0...' });
+
+      // Verify client called with payload and forwarded originalServer as 2nd arg
+      expect(icmClientStub.generatePdfFromJson.calledOnce).to.be.true;
+      const [calledPayload, originalServerArg] = icmClientStub.generatePdfFromJson.getCall(0).args;
+      expect(calledPayload).to.deep.equal(req);
+      expect(originalServerArg).to.equal('icm-dev.internal');
+    });
+
+    it('returns 400 when attachment is missing', async () => {
+      const result = await icmService.generatePdfFromJson({} as any);
+      expect(result.success).to.be.false;
+      expect(result.status).to.equal(400);
+      expect(result.error).to.match(/attachment/i);
+    });
+
+    it('maps Comm Layer failure to a failed result', async () => {
+      const req = { attachment: 'e30=' };
+      const mockResponse = {
+        ok: false,
+        status: 502,
+        json: sinon.stub().resolves({ error: 'Comm Layer down' }),
+      };
+
+      icmClientStub.generatePdfFromJson.resolves(mockResponse as any);
+
+      const result = await icmService.generatePdfFromJson(req);
+      expect(result.success).to.be.false;
+      expect(result.status).to.equal(502);
+    });
+  });
+
 });
