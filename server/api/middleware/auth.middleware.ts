@@ -27,16 +27,23 @@ export function extractAuth(
       token = bodyToken;
     }
 
-    const username = req.body?.username || req.params?.username;
+    const username = req.body?.username || req.params?.username || req.cookies?.username;
 
     req.user = {
       token,
       username,
     };
 
+    // Determine username source for debugging
+    let usernameSource = 'none';
+    if (req.body?.username) usernameSource = 'body';
+    else if (req.params?.username) usernameSource = 'params';
+    else if (req.cookies?.username) usernameSource = 'cookie';
+
     logger.debug('Auth extracted', {
       hasToken: !!token,
       username: username || 'anonymous',
+      usernameSource,
       route: req.path,
     });
 
