@@ -25,23 +25,6 @@ export class CommunicationsController {
     }
   }
 
-  async saveICMData(req: AuthenticatedRequest, res: Response): Promise<void> {
-    const { attachmentId, OfficeName, savedForm } = req.body;
-    const token = getAuthToken(req);
-    const username = getUsername(req) || req.body.username;
-
-    const result = await ICMService.saveICMData(
-      { attachmentId, OfficeName, username, savedForm },
-      token
-    );
-
-    if (result.success) {
-      res.status(200).json({ message: 'success' });
-    } else {
-      res.status(result.status || 500).json({ error: result.error });
-    }
-  }
-
   async loadICMData(req: AuthenticatedRequest, res: Response): Promise<void> {
     const originalServer = req.headers['x-original-server'] as string;
     const { ...params } = req.body;
@@ -343,13 +326,19 @@ export class CommunicationsController {
 
   async generatePdfFromJson(req: Request, res: Response): Promise<void> {
     try {
-      const originalServer = req.headers['x-original-server'] as string | undefined;
+      const originalServer = req.headers['x-original-server'] as
+        | string
+        | undefined;
       const body: any = req.body;
 
       // Accept either { attachment: <base64> }, an array [<base64>], or raw JSON
       let attachmentBase64: string | undefined;
 
-      if (body && typeof body.attachment === 'string' && body.attachment.trim()) {
+      if (
+        body &&
+        typeof body.attachment === 'string' &&
+        body.attachment.trim()
+      ) {
         attachmentBase64 = body.attachment.trim();
       } else if (Array.isArray(body) && typeof body[0] === 'string') {
         attachmentBase64 = String(body[0]);
@@ -362,7 +351,9 @@ export class CommunicationsController {
       }
 
       if (!attachmentBase64) {
-        res.status(400).json({ error: 'attachment (base64) or a JSON body is required' });
+        res
+          .status(400)
+          .json({ error: 'attachment (base64) or a JSON body is required' });
         return;
       }
 
@@ -377,10 +368,11 @@ export class CommunicationsController {
         res.status(result.status ?? 500).json({ error: result.error });
       }
     } catch (error) {
-      res.status(500).json({ error: error instanceof Error ? error.message : 'Internal server error' });
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Internal server error',
+      });
     }
   }
-
 }
 
 export default new CommunicationsController();
