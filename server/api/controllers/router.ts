@@ -9,9 +9,6 @@ import { extractAuth } from '../middleware/auth.middleware';
 
 const router = express.Router();
 
-router.post('/saveICMData', extractAuth, (req, res) =>
-  CommunicationsController.saveICMData(req, res)
-);
 router.post('/generateForm', extractAuth, (req, res) =>
   CommunicationsController.generateForm(req, res)
 );
