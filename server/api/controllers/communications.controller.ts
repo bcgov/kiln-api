@@ -9,7 +9,7 @@ import {
 export class CommunicationsController {
   async generateForm(req: AuthenticatedRequest, res: Response): Promise<void> {
     const originalServer = req.headers['x-original-server'] as string;
-    const { ...params } = req.body;
+    const { token, ...params } = req.body;
     const authToken = getAuthToken(req);
     const username = getUsername(req);
 
@@ -44,7 +44,7 @@ export class CommunicationsController {
   }
 
   async unlockICMData(req: AuthenticatedRequest, res: Response): Promise<void> {
-    const { ...params } = req.body;
+    const { token, ...params } = req.body;
     const authToken = getAuthToken(req);
     const username = getUsername(req);
 
@@ -117,7 +117,7 @@ export class CommunicationsController {
     res: Response
   ): Promise<void> {
     const originalServer = req.headers['x-original-server'] as string;
-    const { ...params } = req.body;
+    const { token, ...params } = req.body;
     const authToken = getAuthToken(req);
     const username = getUsername(req);
 

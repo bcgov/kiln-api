@@ -19,12 +19,13 @@ export function extractAuth(
 
     let token: string | undefined;
 
-    if (authHeader?.startsWith('Bearer ')) {
+    // Prioritize body token over header token
+    if (bodyToken) {
+      token = bodyToken;
+    } else if (authHeader?.startsWith('Bearer ')) {
       token = authHeader.substring(7);
     } else if (authHeader) {
       token = authHeader;
-    } else if (bodyToken) {
-      token = bodyToken;
     }
 
     const username = req.body?.username || req.params?.username || req.cookies?.username;
