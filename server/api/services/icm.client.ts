@@ -280,71 +280,6 @@ export class ICMClient {
     }
   }
 
-  async loadPortalForm(
-    payload: any,
-    originalServer?: string
-  ): Promise<ICMJsonResponse> {
-    try {
-      const url = process.env.COMM_API_LOAD_PORTAL_FORM_ENDPOINT_URL;
-
-      if (!url) {
-        throw new Error(
-          'COMM_API_LOAD_PORTAL_FORM_ENDPOINT_URL environment variable is required'
-        );
-      }
-
-      const timeout = process.env.COMM_API_TIMEOUT
-        ? parseInt(process.env.COMM_API_TIMEOUT, 10)
-        : 30000;
-
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-
-      if (originalServer) {
-        headers['X-Original-Server'] = originalServer;
-      }
-
-      const response = await axios.post(url, payload, {
-        headers,
-        timeout,
-      });
-
-      return this.createJsonResponse(response);
-    } catch (error) {
-      return this.handleJsonError(error, 'loadPortalForm');
-    }
-  }
-
-  async submitForPortalAction(payload: any): Promise<ICMJsonResponse> {
-    try {
-      const url = process.env.COMM_API_SUBMIT_TO_ACTION_ENDPOINT_URL;
-
-      if (!url) {
-        throw new Error(
-          'COMM_API_SUBMIT_TO_ACTION_ENDPOINT_URL environment variable is required'
-        );
-      }
-
-      const timeout = process.env.COMM_API_TIMEOUT
-        ? parseInt(process.env.COMM_API_TIMEOUT, 10)
-        : 30000;
-
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-
-      const response = await axios.post(url, payload, {
-        headers,
-        timeout,
-      });
-
-      return this.createJsonResponse(response);
-    } catch (error) {
-      return this.handleJsonError(error, 'submitForPortalAction');
-    }
-  }
-
   async generateNewTemplate(payload: any, originalServer?: string): Promise<ICMJsonResponse> {
     try {
       const url = process.env.COMM_API_GENERATE_NEWTEMPLATE_ENDPOINT_URL;
@@ -388,4 +323,132 @@ export class ICMClient {
     }
   }
 
+  // interfaces
+  async getInterface(originalServer?: string): Promise<ICMJsonResponse> {
+    try {
+      const url = process.env.COMM_API_INTERFACE_ENDPOINT_URL;
+      if (!url) {
+        throw new Error('COMM_API_INTERFACE_ENDPOINT_URL environment variable is required');
+      }
+
+      const timeout = process.env.COMM_API_TIMEOUT
+        ? parseInt(process.env.COMM_API_TIMEOUT, 10)
+        : 30000;
+
+      const headers: Record<string, string> = {};
+      if (originalServer) {
+        headers['X-Original-Server'] = originalServer;
+      }
+
+      const response = await axios.get(url, { headers, timeout });
+      return this.createJsonResponse(response);
+    } catch (error) {
+      return this.handleJsonError(error, 'getInterface');
+    }
+  }
+
+  // portal
+  // saveForPortalAction 
+  async saveForPortalAction(
+    payload: {
+      tokenId: string;
+      savedForm: string;
+    },
+    originalServer?: string
+  ): Promise<ICMJsonResponse> {
+    const url = process.env.COMM_API_SAVE_FOR_PORTAL_ACTION_ENDPOINT_URL;
+    if (!url) {
+      throw new Error('COMM_API_SAVE_FOR_PORTAL_ACTION_ENDPOINT_URL environment variable is required');
+    }
+
+    const timeout = parseInt(process.env.COMM_API_TIMEOUT || '30000', 10);
+
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (originalServer) headers['X-Original-Server'] = originalServer;
+
+    try {
+      const res = await axios.post(url, payload, { headers, timeout });
+      return this.createJsonResponse(res);
+    } catch (error) {
+      return this.handleJsonError(error, 'saveForPortalAction');
+    }
+  }
+
+  // loadPortalForm
+  async loadPortalForm(
+    payload: { id: string } | ({ portalFormId: string } & Record<string, any>),
+    originalServer?: string
+  ): Promise<ICMJsonResponse> {
+    try {
+      const url = process.env.COMM_API_LOAD_PORTAL_FORM_ENDPOINT_URL;
+      if (!url) {
+        throw new Error('COMM_API_LOAD_PORTAL_FORM_ENDPOINT_URL environment variable is required');
+      }
+
+      const timeout = process.env.COMM_API_TIMEOUT
+        ? parseInt(process.env.COMM_API_TIMEOUT, 10)
+        : 30000;
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (originalServer) headers['X-Original-Server'] = originalServer;
+
+      // Comm Layer returns the decoded JSON body (not wrapped)
+      const response = await axios.post(url, payload, { headers, timeout });
+      return this.createJsonResponse(response);
+    } catch (error) {
+      return this.handleJsonError(error, 'loadPortalForm');
+    }
+  }
+
+  // submitForPortalAction 
+  async submitForPortalAction(
+    payload: {
+      tokenId: string;
+    },
+    originalServer?: string
+  ): Promise<ICMJsonResponse> {
+    const url = process.env.COMM_API_SUBMIT_TO_ACTION_ENDPOINT_URL;
+    if (!url) {
+      // keep this message; tests may check it verbatim
+      throw new Error('COMM_API_SUBMIT_TO_ACTION_ENDPOINT_URL environment variable is required');
+    }
+
+    const timeout = parseInt(process.env.COMM_API_TIMEOUT || '30000', 10);
+
+    // Comm Layer builds its own portal auth.
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (originalServer) headers['X-Original-Server'] = originalServer;
+
+    try {
+      const res = await axios.post(url, payload, { headers, timeout });
+      return this.createJsonResponse(res);
+    } catch (error) {
+      return this.handleJsonError(error, 'submitForPortalAction');
+    }
+  }
+
+  // cancelForPortalAction
+  async cancelForPortalAction(
+    payload: { tokenId: string },
+    originalServer?: string
+  ): Promise<ICMJsonResponse> {
+    const url = process.env.COMM_API_CANCEL_TO_ACTION_ENDPOINT_URL;
+    if (!url) {
+      throw new Error('COMM_API_CANCEL_TO_ACTION_ENDPOINT_URL environment variable is required');
+    }
+
+    const timeout = parseInt(process.env.COMM_API_TIMEOUT || '30000', 10);
+
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (originalServer) headers['X-Original-Server'] = originalServer;
+
+    try {
+      const res = await axios.post(url, payload, { headers, timeout });
+      return this.createJsonResponse(res);
+    } catch (error) {
+      return this.handleJsonError(error, 'cancelForPortalAction');
+    }
+  }
 }

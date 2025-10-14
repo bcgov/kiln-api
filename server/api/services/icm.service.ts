@@ -92,7 +92,7 @@ interface PdfRenderResult {
 }
 
 interface LoadPortalFormRequest {
-  [key: string]: any;
+  id: string; // portal token required by Comm Layer
 }
 
 interface LoadPortalFormResult {
@@ -160,6 +160,17 @@ interface SavedData {
   data: Record<string, any>;
   form_definition: any;
   metadata: Record<string, any>;
+}
+
+interface SaveForPortalActionRequest {
+  tokenId: string;
+  savedForm: string;
+}
+interface SubmitPortalActionRequest {
+  tokenId: string;
+}
+interface CancelPortalActionRequest {
+  tokenId: string;
 }
 
 export class ICMService {
@@ -476,68 +487,6 @@ export class ICMService {
       );
     } catch (err) {
       return this.handleError(err, 'Failed to generate portal form');
-    }
-  }
-
-  async loadPortalForm(
-    data: LoadPortalFormRequest,
-    token?: string,
-    originalServer?: string
-  ): Promise<LoadPortalFormResult> {
-    try {
-      if (!data || Object.keys(data).length === 0) {
-        return {
-          success: false,
-          error: 'Request data is required',
-          status: 400,
-        };
-      }
-
-      const payload = {
-        ...data,
-        ...(token && { token }),
-      };
-
-      const response = await this.icmClient.loadPortalForm(
-        payload,
-        originalServer
-      );
-      return this.handleResponse(
-        response,
-        'Error loading portal form. Please try again.'
-      );
-    } catch (error) {
-      return this.handleError(error, 'Failed to load portal form');
-    }
-  }
-
-  async submitForPortalAction(
-    data: SubmitButtonActionRequest
-  ): Promise<SubmitButtonActionResult> {
-    try {
-      const { tokenId, savedForm, config } = data;
-
-      if (!tokenId || !savedForm || !config) {
-        return {
-          success: false,
-          error: 'Missing required fields: tokenId, savedForm, or config',
-          status: 400,
-        };
-      }
-
-      const payload: SubmitButtonActionPayload = {
-        tokenId,
-        savedForm,
-        config,
-      };
-
-      const response = await this.icmClient.submitForPortalAction(payload);
-      return this.handleResponse(
-        response,
-        'Error submitting button action. Please try again.'
-      );
-    } catch (error) {
-      return this.handleError(error, 'Failed to submit button action');
     }
   }
 
@@ -953,6 +902,98 @@ export class ICMService {
       return this.handleResponse(response, 'Error generating PDF from JSON. Please try again.');
     } catch (error) {
       return this.handleError(error, 'Failed to generate PDF from JSON');
+    }
+  }
+
+  async getInterface(originalServer?: string): Promise<ICMDataResult> {
+    try {
+      const resp = await this.icmClient.getInterface(originalServer);
+      return this.handleResponse(resp, 'Error loading interface. Please try again.');
+    } catch (error) {
+      return this.handleError(error, 'Failed to load interface');
+    }
+  }
+
+  async saveForPortalAction(
+    data: SaveForPortalActionRequest,
+    originalServer?: string
+  ): Promise<ICMDataResult> {
+    try {
+      const { tokenId, savedForm } = data || ({} as SaveForPortalActionRequest);
+
+      if (!tokenId || !savedForm) {
+        return {
+          success: false,
+          status: 400,
+          error: 'Missing required fields: tokenId or savedForm',
+        };
+      }
+
+      const resp = await this.icmClient.saveForPortalAction(
+        { tokenId, savedForm },
+        originalServer
+      );
+      return this.handleResponse(resp, 'Error saving portal form. Please try again.');
+    } catch (error) {
+      return this.handleError(error, 'Failed to save portal form');
+    }
+  }
+
+  async loadPortalForm(
+    data: LoadPortalFormRequest,
+    originalServer?: string
+  ): Promise<LoadPortalFormResult> {
+    try {
+      if (!data || !data.id || typeof data.id !== 'string' || !data.id.trim()) {
+        return { success: false, error: 'Request data is required', status: 400 };
+      }
+
+      const response = await this.icmClient.loadPortalForm(data, originalServer);
+      return this.handleResponse(response, 'Error loading portal form. Please try again.');
+    } catch (error) {
+      return this.handleError(error, 'Failed to load portal form');
+    }
+  }
+
+  async submitForPortalAction(
+    data: SubmitPortalActionRequest,
+    originalServer?: string
+  ): Promise<ICMDataResult> {
+    try {
+      const { tokenId } = data || ({} as SubmitPortalActionRequest);
+
+      if (!tokenId) {
+        return { success: false, status: 400, error: 'Missing required field: tokenId' };
+      }
+
+      const resp = await this.icmClient.submitForPortalAction(
+        { tokenId },
+        originalServer
+      );
+      return this.handleResponse(resp, 'Error submitting portal action. Please try again.');
+    } catch (error) {
+      return this.handleError(error, 'Failed to submit portal action');
+    }
+  }
+
+  async cancelForPortalAction(
+    data: CancelPortalActionRequest,
+    originalServer?: string
+  ): Promise<ICMDataResult> {
+    try {
+      const { tokenId } = data || ({} as CancelPortalActionRequest);
+
+      if (!tokenId) {
+        return { success: false, status: 400, error: 'Missing required field: tokenId' };
+      }
+
+      const resp = await this.icmClient.cancelForPortalAction(
+        { tokenId },
+        originalServer
+      );
+      return this.handleResponse(resp, 'Error cancelling portal action. Please try again.');
+    } catch (error) {
+      return this.handleError(error, 'Failed to cancel portal action');
     }
   }
 
