@@ -94,22 +94,6 @@ paths:
         200:
           description: Form generated
 
-  /saveICMData:
-    post:
-      tags:
-        - Communications Layer
-        - Kiln Interface
-      description: Save data to ICM Siebel REST API
-      parameters:
-        - in: body
-          name: icmData
-          required: true
-          schema:
-            type: object
-      responses:
-        200:
-          description: ICM data saved successfully
-
   /loadICMData:
     post:
       tags:
@@ -493,7 +477,7 @@ paths:
         - Communications Layer
         - Kiln Interface
       summary: Unified save form data endpoint
-      description: Handles both save and save-and-close actions with server-side orchestration. Replaces separate saveICMData and unlockICMData calls with unified backend logic.
+      description: Handles both save and save-and-close actions with server-side orchestration. Provides unified backend logic for form data saving and unlocking.
       consumes:
         - application/json
       produces:
