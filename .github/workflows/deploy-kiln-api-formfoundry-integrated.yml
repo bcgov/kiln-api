@@ -74,7 +74,7 @@ jobs:
             --set image.tag=${{ env.IMAGE_TAG }} \
             --set fullnameOverride="${{ steps.set_vars.outputs.release_name }}"
 
-      - name: Trigger OpenShift Rollout
-        run: |
-            oc rollout restart deployment/${{ steps.set_vars.outputs.release_name }}
+      # - name: Trigger OpenShift Rollout
+      #   run: |
+      #       oc rollout restart deployment/${{ steps.set_vars.outputs.release_name }}
 
