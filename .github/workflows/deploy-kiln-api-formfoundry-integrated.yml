@@ -11,15 +11,8 @@ on:
 env:
   APP_NAME: kiln-api
   CHART_PATH: helm/kiln-api
-  LICENSE_PLATE: d70240
   IMAGE_REPO: ghcr.io/bcgov/kiln-api
   IMAGE_TAG: latest # Could be overridden by workflow_dispatch input
-  DEV_NAMESPACE: dev
-  TEST_NAMESPACE: test
-  PROD_NAMESPACE: prod 
-  TOOLS_NAMESPACE: tools
-  OPENSHIFT_SERVER: ${{ secrets.OPENSHIFT_SERVER }}
-  OPENSHIFT_TOKEN: ${{ secrets.OPENSHIFT_TOKEN }}
 
 jobs:
 
