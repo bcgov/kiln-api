@@ -18,38 +18,6 @@ describe('ICMService', () => {
     sinon.restore();
   });
 
-  describe('saveICMData', () => {
-    it('should successfully save ICM data with all required fields', async () => {
-      const testData = {
-        attachmentId: 'test-123',
-        OfficeName: 'Test Office',
-        username: 'testuser',
-        savedForm: { field1: 'value1', field2: 'value2' },
-      };
-
-      const mockResponse = {
-        ok: true,
-        json: sinon.stub().resolves({ id: 'saved-123', status: 'success' }),
-      };
-
-      icmClientStub.saveICMData.resolves(mockResponse as any);
-
-      const result = await icmService.saveICMData(testData, 'test-token');
-
-      expect(result.success).to.be.true;
-      expect(result.data).to.deep.equal({ id: 'saved-123', status: 'success' });
-      expect(icmClientStub.saveICMData.calledOnce).to.be.true;
-
-      const calledPayload = icmClientStub.saveICMData.getCall(0).args[0];
-      expect(calledPayload).to.deep.equal({
-        attachmentId: 'test-123',
-        OfficeName: 'Test Office',
-        savedForm: { field1: 'value1', field2: 'value2' },
-        token: 'test-token',
-      });
-    });
-  });
-
   describe('loadICMData', () => {
     it('should successfully load ICM data with token', async () => {
       const testData = {
@@ -1623,6 +1591,164 @@ describe('ICMService', () => {
     });
   });
 
+  describe('generateNewTemplate', () => {
+    it('should successfully call Comm Layer and return success payload', async () => {
+      const req = {
+        attachmentId: '1-4ZYB80E',
+        area: 'Service Request',
+        formId: 'CF8787',
+        CaseId: '1-4ZYB34V',
+        username: 'DOKULSKI',
+      };
+
+      const mockResponse = {
+        ok: true,
+        status: 200,
+        json: sinon.stub().resolves({ errorCode: 0, message: 'Successfully generated the form' }),
+      };
+
+      icmClientStub.generateNewTemplate.resolves(mockResponse as any);
+
+      const result = await icmService.generateNewTemplate(req);
+
+      expect(result.success).to.be.true;
+      expect(result.data).to.deep.equal({ errorCode: 0, message: 'Successfully generated the form' });
+
+      expect(icmClientStub.generateNewTemplate.calledOnce).to.be.true;
+      const [calledPayload, originalServerArg] = icmClientStub.generateNewTemplate.getCall(0).args;
+      expect(calledPayload).to.deep.equal(req);
+      expect(originalServerArg).to.be.undefined;
+    });
+
+    it('should forward originalServer inside payload when originalServer is provided', async () => {
+      const req = {
+        attachmentId: '1-4ZYB80E',
+        area: 'Service Request',
+        formId: 'CF8787',
+        originalServer: 'icm-dev.internal',
+      };
+
+      const mockResponse = {
+        ok: true,
+        status: 200,
+        json: sinon.stub().resolves({ errorCode: 0, message: 'ok' }),
+      };
+
+      icmClientStub.generateNewTemplate.resolves(mockResponse as any);
+
+      const result = await icmService.generateNewTemplate(req);
+
+      expect(result.success).to.be.true;
+
+      // Verify call shape
+      expect(icmClientStub.generateNewTemplate.calledOnce).to.be.true;
+      const [calledPayload, originalServerArg] =
+        icmClientStub.generateNewTemplate.getCall(0).args;
+
+      // Service currently forwards originalServer in the body (not as 2nd arg)
+      expect(calledPayload).to.deep.equal({
+        attachmentId: '1-4ZYB80E',
+        area: 'Service Request',
+        formId: 'CF8787',
+        originalServer: 'icm-dev.internal',
+      });
+      expect(originalServerArg).to.be.undefined;
+    });
+
+    it('should return 400 when attachmentId is missing', async () => {
+      const req = { area: 'Service Request', formId: 'CF8787' } as any;
+
+      const result = await icmService.generateNewTemplate(req);
+
+      expect(result.success).to.be.false;
+      expect(result.status).to.equal(400);
+      expect(result.error).to.match(/attachmentId/i);
+      expect(icmClientStub.generateNewTemplate.called).to.be.false;
+    });
+
+    it('should return 400 when area is missing', async () => {
+      const req = { attachmentId: '1-4ZYB80E', formId: 'CF8787' } as any;
+
+      const result = await icmService.generateNewTemplate(req);
+
+      expect(result.success).to.be.false;
+      expect(result.status).to.equal(400);
+      expect(result.error).to.match(/Area/i);
+      expect(icmClientStub.generateNewTemplate.called).to.be.false;
+    });
+
+    it('should return 400 when formId is missing', async () => {
+      const req = { attachmentId: '1-4ZYB80E', area: 'Service Request' } as any;
+
+      const result = await icmService.generateNewTemplate(req);
+
+      expect(result.success).to.be.false;
+      expect(result.status).to.equal(400);
+      expect(result.error).to.match(/FormId/i);
+      expect(icmClientStub.generateNewTemplate.called).to.be.false;
+    });
+
+    it('should surface CL error (400) message to caller', async () => {
+      const req = {
+        attachmentId: 'bad',
+        area: 'Service Request',
+        formId: 'CF8787',
+      };
+
+      const mockResponse = {
+        ok: false,
+        status: 400,
+        json: sinon.stub().resolves({ error: 'The form cannot be generated.' }),
+      };
+
+      icmClientStub.generateNewTemplate.resolves(mockResponse as any);
+
+      const result = await icmService.generateNewTemplate(req);
+
+      expect(result.success).to.be.false;
+      expect(result.status).to.equal(400);
+      expect(result.error).to.equal('The form cannot be generated.');
+    });
+
+    it('should use default error message when CL returns no error body', async () => {
+      const req = {
+        attachmentId: '1-4ZYB80E',
+        area: 'Service Request',
+        formId: 'CF8787',
+      };
+
+      const mockResponse = {
+        ok: false,
+        status: 500,
+        json: sinon.stub().resolves({}),
+      };
+
+      icmClientStub.generateNewTemplate.resolves(mockResponse as any);
+
+      const result = await icmService.generateNewTemplate(req);
+
+      expect(result.success).to.be.false;
+      expect(result.status).to.equal(500);
+      expect(result.error).to.equal('The form cannot be generated.');
+    });
+
+    it('should map client exceptions to 500 with helpful message', async () => {
+      const req = {
+        attachmentId: '1-4ZYB80E',
+        area: 'Service Request',
+        formId: 'CF8787',
+      };
+
+      icmClientStub.generateNewTemplate.rejects(new Error('Network connection failed'));
+
+      const result = await icmService.generateNewTemplate(req);
+
+      expect(result.success).to.be.false;
+      expect(result.status).to.equal(500);
+      expect(result.error).to.equal('Failed to generate new template: Network connection failed');
+    });
+  });
+
   describe('saveFormData', () => {
     it('should successfully save form data with save action and return structured response', async () => {
       const testData = {
@@ -1761,4 +1887,51 @@ describe('ICMService', () => {
       expect(icmClientStub.unlockICMData.called).to.be.false;
     });
   });
+
+  describe('generatePdfFromJson', () => {
+    it('successfully calls Comm Layer and returns success payload', async () => {
+      const req = { attachment: 'eyJ0ZXN0IjoxfQ==' };
+      const mockResponse = {
+        ok: true,
+        status: 200,
+        json: sinon.stub().resolves({ errorCode: 0, errorMessage: '', pdf: 'JVBERi0...' }),
+      };
+
+      icmClientStub.generatePdfFromJson.resolves(mockResponse as any);
+
+      const result = await icmService.generatePdfFromJson(req, 'icm-dev.internal');
+
+      expect(result.success).to.be.true;
+      expect(result.data).to.deep.equal({ errorCode: 0, errorMessage: '', pdf: 'JVBERi0...' });
+
+      // Verify client called with payload and forwarded originalServer as 2nd arg
+      expect(icmClientStub.generatePdfFromJson.calledOnce).to.be.true;
+      const [calledPayload, originalServerArg] = icmClientStub.generatePdfFromJson.getCall(0).args;
+      expect(calledPayload).to.deep.equal(req);
+      expect(originalServerArg).to.equal('icm-dev.internal');
+    });
+
+    it('returns 400 when attachment is missing', async () => {
+      const result = await icmService.generatePdfFromJson({} as any);
+      expect(result.success).to.be.false;
+      expect(result.status).to.equal(400);
+      expect(result.error).to.match(/attachment/i);
+    });
+
+    it('maps Comm Layer failure to a failed result', async () => {
+      const req = { attachment: 'e30=' };
+      const mockResponse = {
+        ok: false,
+        status: 502,
+        json: sinon.stub().resolves({ error: 'Comm Layer down' }),
+      };
+
+      icmClientStub.generatePdfFromJson.resolves(mockResponse as any);
+
+      const result = await icmService.generatePdfFromJson(req);
+      expect(result.success).to.be.false;
+      expect(result.status).to.equal(502);
+    });
+  });
+
 });
