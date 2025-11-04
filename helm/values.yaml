@@ -1,26 +1,22 @@
 global:
   nameOverride: ""
   fullnameOverride: ""
-  licenseplate: "abcdef"
+  licenseplate: "ed84ea"
   cluster: "silver"
   serviceAccount:
-    name: "abcdef-vault"
+    name: "ed84ea-vault"
     # Specifies whether a service account should be created
     create: false
     # Automatically mount a ServiceAccount's API credentials?
     automount: true
   # -- List of servers proxied by the Kiln API
-  servers:
-    - domain: "app1.example.com" 
-      backend: "app1-backend.example.com"
-    - domain: "app2.example.com"
-      backend: "app2-backend.example.com"
+  servers: []
 
   # Inject Keycloak JSON multi-value config from a Vault secret
   # See details: https://digital.gov.bc.ca/technology/cloud/private/products-tools/vault/
   vault:
     # Vault role for this service
-    role: "abcdef-nonprod" 
+    role: "ed84ea-nonprod" 
     # Secrets path in container
     containerPath: "/vault/secrets/secrets"
     # Vault engine to use
@@ -58,6 +54,7 @@ kilnAPI:
     capabilities:
       drop:
         - ALL
+
   env:
     - name: APP_ID
       value: "kiln-api-test"
@@ -253,43 +250,47 @@ nginx:
   # This will completely override the default generated server blocks.
   # Ensure proper Nginx syntax and indentation within this string.
   serverBlocks: |
+    map $http_username $username_cookie {
+        default "";
+        ""      "";
+        ~.+     "$http_username";
+    }
+
     server {
-        listen 443;
-        listen [::]:443;
-        server_name my.custom.domain.com; # Example custom domain
+        listen 8080;
+        server_name _;
 
-        # Example SSL/TLS configuration
-        ssl_certificate /etc/nginx/certs/my.custom.domain.com.crt;
-        ssl_certificate_key /etc/nginx/certs/my.custom.domain.com.key;
-        ssl_protocols TLSv1.2 TLSv1.3;
-        ssl_ciphers 'TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256';
-        ssl_prefer_server_ciphers on;
-
-        error_page 401 403 = @login_required;
-        port_in_redirect off;
-
-        proxy_connect_timeout       75s;
-        proxy_send_timeout          75s;
-        proxy_read_timeout          300s;
+        root /usr/share/nginx/html;
+        index index.html;
 
         location / {
-          auth_request /auth/;
-          auth_request_set $auth_status $upstream_status;
+            add_header Set-Cookie "originalServer=$http_x_original_server; Path=/; SameSite=Lax" always;
+            add_header Set-Cookie "username=$username_cookie; Path=/" always;
+            try_files $uri $uri/ /index.html;
         }
 
-        location /auth/ {
-          internal;
+        location /api/ {
+            rewrite ^/api(/.*)$ $1 break;
+            proxy_pass http://kiln-api-svc:3000;
+            
+            #Debug proxyhost
+            add_header X-Debug-Upstream "$scheme://$proxy_host$request_uri" always;
+
+            proxy_ssl_server_name on;
+
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto https;
+            proxy_set_header X-Original-Server $http_x_original_server;
         }
 
-        location /sso-login {
+        location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|otf|eot|json)$ {
+            expires 1y;
+            add_header Cache-Control "public, max-age=31536000, immutable";
         }
 
-        location /sso {
-        }
-
-        location @login_required {
-          return 302 /sso-login?relay=$request_uri;
-        }
+        error_page 404 /index.html;
     }
 
   service:
@@ -301,7 +302,7 @@ nginx:
   ingress:
     enabled: false # Set to true to use Kubernetes Ingress resource (requires Ingress Controller)
     className: "nginx" # Or your specific Ingress Controller class name
-    host: "sso.example.com" # REPLACE ME!
+    host: "sso.example.com"
     path: /
     pathType: Prefix
     annotations: {} # Add any specific Ingress annotations here (e.g., cert-manager, rewrite rules)

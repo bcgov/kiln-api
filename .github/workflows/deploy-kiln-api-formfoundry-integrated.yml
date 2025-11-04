@@ -1,0 +1,80 @@
+name: Deploy Kiln API via Helm to FormFoundry Integrated 
+
+on:
+  push:
+    branches:
+      - main # Trigger on pushes to the main branch
+      - test
+      - dev
+  workflow_dispatch:
+
+env:
+  APP_NAME: kiln-api
+  CHART_PATH: helm/kiln-api
+  IMAGE_REPO: ghcr.io/bcgov/kiln-api
+  IMAGE_TAG: latest # Could be overridden by workflow_dispatch input
+
+jobs:
+
+  deploy:
+    runs-on: ubuntu-latest
+    environment:  ${{ github.ref == 'refs/heads/main' && 'prod-formfoundry' || (github.ref == 'refs/heads/dev' && 'dev-formfoundry') || github.ref == 'refs/heads/test' && 'test-formfoundry' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Set branch and environment variables
+        id: set_vars
+        run: |
+            BRANCH="${GITHUB_REF##*/}"
+            if [[ "$BRANCH" == "main" ]]; then
+            ENV_NAMESPACE="prod"
+            RELEASE_NAME="kiln-api"
+            VAULT_ROLE="${{ vars.LICENSE_PLATE }}-prod"
+            elif [[ "$BRANCH" == "test" ]]; then
+            ENV_NAMESPACE="test"
+             RELEASE_NAME="kiln-api-test"
+            VAULT_ROLE="${{ vars.LICENSE_PLATE }}-nonprod"
+            else
+            ENV_NAMESPACE="dev"
+            RELEASE_NAME="kiln-api-dev"
+            VAULT_ROLE="${{ vars.LICENSE_PLATE }}-nonprod"
+            fi
+            echo "namespace=$ENV_NAMESPACE" >> $GITHUB_OUTPUT
+            echo "release_name=$RELEASE_NAME" >> $GITHUB_OUTPUT
+            echo "vault_role=$VAULT_ROLE" >> $GITHUB_OUTPUT
+
+      - name: Install oc CLI
+        uses: redhat-actions/oc-installer@v1
+        with:
+            oc_version: '4.6'
+
+      - name: Authenticate with OpenShift
+        uses: redhat-actions/oc-login@v1
+        with:
+            openshift_server_url: ${{ vars.OPENSHIFT_SERVER }}
+            namespace: ${{ vars.OPENSHIFT_NAMESPACE }}
+            openshift_token: ${{ secrets.OPENSHIFT_TOKEN }}
+            insecure_skip_tls_verify: true
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+            version: 'latest'
+
+      - name: Deploy with Helm
+        run: |
+            helm upgrade --install "${{ steps.set_vars.outputs.release_name }}" ./helm \
+            --namespace "${{ env.LICENSE_PLATE }}-${{ steps.set_vars.outputs.namespace }}" \
+            --set global.licenseplate=${{ env.LICENSE_PLATE }} \
+            --set global.serviceAccount.name=${{ env.LICENSE_PLATE }}-vault \
+            --set global.vault.role=${{ steps.set_vars.outputs.vault_role }}
+            --set image.repository=${{ env.IMAGE_REPO }} \
+            --set image.tag=${{ env.IMAGE_TAG }} \
+            --set fullnameOverride="${{ steps.set_vars.outputs.release_name }}"
+
+      - name: Trigger OpenShift Rollout
+        run: |
+            oc rollout restart deployment/${{ steps.set_vars.outputs.release_name }}
+
