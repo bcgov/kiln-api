@@ -5,48 +5,48 @@ import DefaultController from './default.controller';
 import CommunicationsController from './communications.controller';
 import RendererController from './renderer.controller';
 import examplesRouter from './examples/router';
+import { extractAuth } from '../middleware/auth.middleware';
 
 const router = express.Router();
 
-// Communications Layer Routes
-router.post('/saveICMData', (req, res) =>
-  CommunicationsController.saveICMData(req, res)
-);
-router.post('/generateForm', (req, res) =>
+router.post('/generateForm', extractAuth, (req, res) =>
   CommunicationsController.generateForm(req, res)
 );
-router.post('/editForm', (req, res) =>
-  CommunicationsController.editFormData(req, res)
-);
-router.post('/loadICMData', (req, res) =>
+router.post('/loadICMData', extractAuth, (req, res) =>
   CommunicationsController.loadICMData(req, res)
 );
-router.post('/unlockICMData', (req, res) =>
+router.post('/unlockICMData', extractAuth, (req, res) =>
   CommunicationsController.unlockICMData(req, res)
 );
-router.post('/loadSavedJson', (req, res) =>
+router.post('/loadSavedJson', extractAuth, (req, res) =>
   CommunicationsController.loadSavedJson(req, res)
 );
-router.post('/pdfRender/:pdfTemplateId', (req, res) =>
+router.post('/pdfRender/:pdfTemplateId', extractAuth, (req, res) =>
   CommunicationsController.pdfRender(req, res)
 );
-router.post('/generatePortalForm', (req, res) =>
+router.post('/generatePortalForm', extractAuth, (req, res) =>
   CommunicationsController.generatePortalForm(req, res)
 );
-router.post('/loadPortalForm', (req, res) =>
+router.post('/loadPortalForm', extractAuth, (req, res) =>
   CommunicationsController.loadPortalForm(req, res)
 );
-router.post('/submitForPortalAction', (req, res) =>
+router.post('/submitForPortalAction', extractAuth, (req, res) =>
   CommunicationsController.submitForPortalAction(req, res)
 );
-router.post('/loadBoundForm', (req, res) =>
+router.post('/generateNewTemplate', extractAuth, (req, res) =>
+  CommunicationsController.generateNewTemplate(req, res)
+);
+router.post('/loadBoundForm', extractAuth, (req, res) =>
   CommunicationsController.loadBoundForm(req, res)
 );
-router.post('/bindPreviewForm', (req, res) =>
+router.post('/bindPreviewForm', extractAuth, (req, res) =>
   CommunicationsController.bindPreviewForm(req, res)
 );
-router.post('/saveFormData', (req, res) =>
+router.post('/saveFormData', extractAuth, (req, res) =>
   CommunicationsController.saveFormData(req, res)
+);
+router.post('/generatePDFFromJson', (req, res) =>
+  CommunicationsController.generatePdfFromJson(req, res)
 );
 
 // Kiln Renderer Routes

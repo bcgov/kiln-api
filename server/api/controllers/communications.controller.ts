@@ -1,17 +1,17 @@
 import { Request, Response } from 'express';
 import ICMService from '../services/icm.service';
+import {
+  AuthenticatedRequest,
+  getAuthToken,
+  getUsername,
+} from '../middleware/auth.middleware';
 
 export class CommunicationsController {
-  async generateForm(req: Request, res: Response): Promise<void> {
+  async generateForm(req: AuthenticatedRequest, res: Response): Promise<void> {
     const originalServer = req.headers['x-original-server'] as string;
-    const { token, username, ...params } = req.body;
-
-    const authHeader = req.headers.authorization;
-    const authToken =
-      token ||
-      (authHeader?.startsWith('Bearer ')
-        ? authHeader.substring(7)
-        : authHeader);
+    const { token, ...params } = req.body;
+    const authToken = getAuthToken(req);
+    const username = getUsername(req);
 
     const result = await ICMService.generateForm(
       { ...params, username, originalServer },
@@ -25,42 +25,11 @@ export class CommunicationsController {
     }
   }
 
-  editFormData(req: Request, res: Response): void {
-    res.json({ endpoint: 'editForm', payload: req.body });
-  }
-
-  async saveICMData(req: Request, res: Response): Promise<void> {
-    const { attachmentId, OfficeName, username, savedForm } = req.body;
-
-    const authHeader = req.headers.authorization;
-    const token = authHeader?.startsWith('Bearer ')
-      ? authHeader.substring(7)
-      : authHeader;
-
-    // TODO: Implement authentication/authorization when available
-
-    const result = await ICMService.saveICMData(
-      { attachmentId, OfficeName, username, savedForm },
-      token
-    );
-
-    if (result.success) {
-      res.status(200).json({ message: 'success' });
-    } else {
-      res.status(result.status || 500).json({ error: result.error });
-    }
-  }
-
-  async loadICMData(req: Request, res: Response): Promise<void> {
+  async loadICMData(req: AuthenticatedRequest, res: Response): Promise<void> {
     const originalServer = req.headers['x-original-server'] as string;
-    const { token, username, ...params } = req.body;
-
-    const authHeader = req.headers.authorization;
-    const authToken =
-      token ||
-      (authHeader?.startsWith('Bearer ')
-        ? authHeader.substring(7)
-        : authHeader);
+    const { ...params } = req.body;
+    const authToken = getAuthToken(req);
+    const username = getUsername(req);
 
     const result = await ICMService.loadICMData(
       { ...params, username, originalServer },
@@ -74,15 +43,10 @@ export class CommunicationsController {
     }
   }
 
-  async unlockICMData(req: Request, res: Response): Promise<void> {
-    const { token, username, ...params } = req.body;
-
-    const authHeader = req.headers.authorization;
-    const authToken =
-      token ||
-      (authHeader?.startsWith('Bearer ')
-        ? authHeader.substring(7)
-        : authHeader);
+  async unlockICMData(req: AuthenticatedRequest, res: Response): Promise<void> {
+    const { token, ...params } = req.body;
+    const authToken = getAuthToken(req);
+    const username = getUsername(req);
 
     const result = await ICMService.unlockICMData(
       { ...params, username },
@@ -148,16 +112,14 @@ export class CommunicationsController {
     }
   }
 
-  async generatePortalForm(req: Request, res: Response): Promise<void> {
+  async generatePortalForm(
+    req: AuthenticatedRequest,
+    res: Response
+  ): Promise<void> {
     const originalServer = req.headers['x-original-server'] as string;
-    const { token, username, ...params } = req.body;
-
-    const authHeader = req.headers.authorization;
-    const authToken =
-      token ||
-      (authHeader?.startsWith('Bearer ')
-        ? authHeader.substring(7)
-        : authHeader);
+    const { token, ...params } = req.body;
+    const authToken = getAuthToken(req);
+    const username = getUsername(req);
 
     const result = await ICMService.generatePortalForm(
       { ...params, username, originalServer },
@@ -171,18 +133,14 @@ export class CommunicationsController {
     }
   }
 
-  async loadPortalForm(req: Request, res: Response): Promise<void> {
+  async loadPortalForm(
+    req: AuthenticatedRequest,
+    res: Response
+  ): Promise<void> {
     try {
       const requestData = req.body;
-
-      const authHeader = req.headers.authorization;
-      const token = authHeader?.startsWith('Bearer ')
-        ? authHeader.substring(7)
-        : authHeader;
-
+      const token = getAuthToken(req);
       const originalServer = req.headers['x-original-server'] as string;
-
-      // TODO: Implement authentication/authorization when available
 
       const result = await ICMService.loadPortalForm(
         requestData,
@@ -206,17 +164,12 @@ export class CommunicationsController {
     }
   }
 
-  async loadBoundForm(req: Request, res: Response): Promise<void> {
+  async loadBoundForm(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const originalServer = req.headers['x-original-server'] as string;
-      const { token, username, isPortalIntegrated, ...params } = req.body;
-
-      const authHeader = req.headers.authorization;
-      const authToken =
-        token ||
-        (authHeader?.startsWith('Bearer ')
-          ? authHeader.substring(7)
-          : authHeader);
+      const { isPortalIntegrated, ...params } = req.body;
+      const authToken = getAuthToken(req);
+      const username = getUsername(req);
 
       let result;
       if (isPortalIntegrated) {
@@ -271,11 +224,12 @@ export class CommunicationsController {
     }
   }
 
-  async submitForPortalAction(req: Request, res: Response): Promise<void> {
+  async submitForPortalAction(
+    req: AuthenticatedRequest,
+    res: Response
+  ): Promise<void> {
     try {
       const { tokenId, savedForm, config } = req.body;
-
-      // TODO: Implement authentication/authorization when available
 
       const result = await ICMService.submitForPortalAction({
         tokenId,
@@ -299,7 +253,36 @@ export class CommunicationsController {
     }
   }
 
-  async saveFormData(req: Request, res: Response): Promise<void> {
+  async generateNewTemplate(
+    req: AuthenticatedRequest,
+    res: Response
+  ): Promise<void> {
+    try {
+      const requestData = req.body;
+      const authToken = getAuthToken(req);
+      const originalServer = req.headers['x-original-server'] as string;
+
+      const result = await ICMService.generateNewTemplate(
+        {
+          ...requestData,
+          ...(originalServer ? { originalServer } : {}),
+        },
+        authToken
+      );
+
+      if (result.success) {
+        res.status(200).json(result.data);
+      } else {
+        res.status(result.status || 400).json({ error: result.error });
+      }
+    } catch (error) {
+      let errorMessage = 'Internal server error';
+      if (error instanceof Error && error.message) errorMessage = error.message;
+      res.status(500).json({ error: errorMessage });
+    }
+  }
+
+  async saveFormData(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const {
         action,
@@ -310,11 +293,7 @@ export class CommunicationsController {
         items,
         sessionParams,
       } = req.body;
-
-      const authHeader = req.headers.authorization;
-      const token = authHeader?.startsWith('Bearer ')
-        ? authHeader.substring(7)
-        : authHeader;
+      const token = getAuthToken(req);
 
       const result = await ICMService.saveFormData(
         {
@@ -341,6 +320,56 @@ export class CommunicationsController {
       }
       res.status(500).json({
         error: errorMessage,
+      });
+    }
+  }
+
+  async generatePdfFromJson(req: Request, res: Response): Promise<void> {
+    try {
+      const originalServer = req.headers['x-original-server'] as
+        | string
+        | undefined;
+      const body: any = req.body;
+
+      // Accept either { attachment: <base64> }, an array [<base64>], or raw JSON
+      let attachmentBase64: string | undefined;
+
+      if (
+        body &&
+        typeof body.attachment === 'string' &&
+        body.attachment.trim()
+      ) {
+        attachmentBase64 = body.attachment.trim();
+      } else if (Array.isArray(body) && typeof body[0] === 'string') {
+        attachmentBase64 = String(body[0]);
+      } else if (body && typeof body === 'object') {
+        const { token, username, originalServer: _ignored, ...formJson } = body;
+        if (Object.keys(formJson || {}).length > 0) {
+          const jsonStr = JSON.stringify(formJson);
+          attachmentBase64 = Buffer.from(jsonStr, 'utf8').toString('base64');
+        }
+      }
+
+      if (!attachmentBase64) {
+        res
+          .status(400)
+          .json({ error: 'attachment (base64) or a JSON body is required' });
+        return;
+      }
+
+      const result = await ICMService.generatePdfFromJson(
+        { attachment: attachmentBase64 },
+        originalServer
+      );
+
+      if (result.success) {
+        res.status(200).json(result.data);
+      } else {
+        res.status(result.status ?? 500).json({ error: result.error });
+      }
+    } catch (error) {
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Internal server error',
       });
     }
   }
