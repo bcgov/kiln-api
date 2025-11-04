@@ -42,9 +42,9 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
-            type=raw,value=test-latest,enable=${{ github.ref == format('refs/heads/{0}', 'test') }}
-            type=raw,value=dev-latest,enable=${{ github.ref == format('refs/heads/{0}', 'dev') }}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=test-latest,enable=${{ github.ref == 'refs/heads/test' }}
+            type=raw,value=dev-latest,enable=${{ github.ref == 'refs/heads/dev' }}
             type=sha,format=short
             type=ref,event=tag # e.g., v1.0.0
 
