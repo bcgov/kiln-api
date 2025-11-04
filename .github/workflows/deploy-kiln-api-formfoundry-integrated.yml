@@ -69,7 +69,7 @@ jobs:
             --namespace "${{ vars.LICENSE_PLATE }}-${{ steps.set_vars.outputs.namespace }}" \
             --set global.licenseplate=${{ vars.LICENSE_PLATE }} \
             --set global.serviceAccount.name=${{ vars.LICENSE_PLATE }}-vault \
-            --set global.vault.role=${{ steps.set_vars.outputs.vault_role }}
+            --set global.vault.role=${{ steps.set_vars.outputs.vault_role }} \
             --set image.repository=${{ env.IMAGE_REPO }} \
             --set image.tag=${{ env.IMAGE_TAG }} \
             --set fullnameOverride="${{ steps.set_vars.outputs.release_name }}"
