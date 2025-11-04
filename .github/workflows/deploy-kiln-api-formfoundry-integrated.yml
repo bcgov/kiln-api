@@ -66,9 +66,9 @@ jobs:
       - name: Deploy with Helm
         run: |
             helm upgrade --install "${{ steps.set_vars.outputs.release_name }}" ./helm \
-            --namespace "${{ var.LICENSE_PLATE }}-${{ steps.set_vars.outputs.namespace }}" \
-            --set global.licenseplate=${{ var.LICENSE_PLATE }} \
-            --set global.serviceAccount.name=${{ var.LICENSE_PLATE }}-vault \
+            --namespace "${{ vars.LICENSE_PLATE }}-${{ steps.set_vars.outputs.namespace }}" \
+            --set global.licenseplate=${{ vars.LICENSE_PLATE }} \
+            --set global.serviceAccount.name=${{ vars.LICENSE_PLATE }}-vault \
             --set global.vault.role=${{ steps.set_vars.outputs.vault_role }}
             --set image.repository=${{ env.IMAGE_REPO }} \
             --set image.tag=${{ env.IMAGE_TAG }} \
