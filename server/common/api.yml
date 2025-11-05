@@ -443,8 +443,10 @@ paths:
                     type: object
                     description: The form definition JSON
                   data:
+                    type: object
                     description: The saved form data to bind
                   metadata:
+                    type: object
                     description: Form metadata
             required:
               - formData
