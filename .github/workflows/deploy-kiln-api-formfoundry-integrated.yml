@@ -30,15 +30,15 @@ jobs:
             BRANCH="${GITHUB_REF##*/}"
             if [[ "$BRANCH" == "main" ]]; then
             ENV_NAMESPACE="prod"
-            RELEASE_NAME="kiln-api"
+            RELEASE_NAME="kiln-api-client"
             VAULT_ROLE="${{ vars.LICENSE_PLATE }}-prod"
             elif [[ "$BRANCH" == "test" ]]; then
             ENV_NAMESPACE="test"
-             RELEASE_NAME="kiln-api-test"
+             RELEASE_NAME="kiln-api-test-client"
             VAULT_ROLE="${{ vars.LICENSE_PLATE }}-nonprod"
             else
             ENV_NAMESPACE="dev"
-            RELEASE_NAME="kiln-api-dev"
+            RELEASE_NAME="kiln-api-dev-client"
             VAULT_ROLE="${{ vars.LICENSE_PLATE }}-nonprod"
             fi
             echo "namespace=$ENV_NAMESPACE" >> $GITHUB_OUTPUT
