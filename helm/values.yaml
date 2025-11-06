@@ -277,7 +277,6 @@ nginx:
         location = /health { return 200; }
 
         location /api/ {
-            rewrite ^/api(/.*)$ $1 break;
             proxy_pass http://kiln-api-svc:3000;
             
             #Debug proxyhost
