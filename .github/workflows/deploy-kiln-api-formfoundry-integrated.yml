@@ -76,5 +76,5 @@ jobs:
 
       - name: Trigger OpenShift Rollout
         run: |
-            oc rollout restart deployment/${{ steps.set_vars.outputs.release_name }}
+            oc rollout restart deployment/${{ steps.set_vars.outputs.release_name }}-client
 

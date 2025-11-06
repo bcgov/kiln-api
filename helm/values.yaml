@@ -54,6 +54,11 @@ kilnAPI:
     capabilities:
       drop:
         - ALL
+  
+  envFrom:
+  - secretRef:
+      name: kiln-api-secrets
+      optional: true
 
   env:
     - name: APP_ID
@@ -268,6 +273,8 @@ nginx:
             add_header Set-Cookie "username=$username_cookie; Path=/" always;
             try_files $uri $uri/ /index.html;
         }
+
+        location = /health { return 200; }
 
         location /api/ {
             rewrite ^/api(/.*)$ $1 break;
