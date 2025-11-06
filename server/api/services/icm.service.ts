@@ -7,6 +7,7 @@ interface SaveICMDataPayload {
   savedForm: any;
   token?: string;
   username?: string;
+  originalServer?: string;
 }
 
 interface SaveICMDataRequest {
@@ -14,6 +15,7 @@ interface SaveICMDataRequest {
   OfficeName: string;
   username?: string;
   savedForm: any;
+  originalServer?: string;
 }
 
 interface SaveICMDataResult {
@@ -236,7 +238,8 @@ export class ICMService {
 
   async saveICMData(
     data: SaveICMDataRequest,
-    token?: string
+    token?: string,
+    originalServer?: string
   ): Promise<SaveICMDataResult> {
     try {
       const { attachmentId, OfficeName, username, savedForm } = data;
@@ -254,6 +257,7 @@ export class ICMService {
         attachmentId,
         OfficeName,
         savedForm,
+        originalServer
       };
 
       if (token) {
@@ -865,7 +869,8 @@ export class ICMService {
 
   async saveFormData(
     data: SaveFormDataRequest,
-    token?: string
+    token?: string,
+    originalServer?: string
   ): Promise<SaveFormDataResult> {
     try {
       const {
@@ -901,6 +906,7 @@ export class ICMService {
           OfficeName: sessionParams.OfficeName,
           username: sessionParams.username,
           savedForm: JSON.stringify(savedData),
+          originalServer
         },
         token
       );

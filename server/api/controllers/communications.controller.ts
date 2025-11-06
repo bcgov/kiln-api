@@ -283,6 +283,7 @@ export class CommunicationsController {
   }
 
   async saveFormData(req: AuthenticatedRequest, res: Response): Promise<void> {
+    const originalServer = req.headers['x-original-server'] as string;
     try {
       const {
         action,
@@ -305,7 +306,8 @@ export class CommunicationsController {
           items,
           sessionParams,
         },
-        token
+        token,
+        originalServer
       );
 
       if (result.success) {
