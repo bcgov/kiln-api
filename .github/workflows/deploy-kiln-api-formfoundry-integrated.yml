@@ -9,9 +9,6 @@ on:
   workflow_dispatch:
 
 env:
-  APP_NAME: kiln-api
-  CHART_PATH: helm/kiln-api
-  IMAGE_REPO: ghcr.io/bcgov/kiln-api
   IMAGE_TAG: latest # Could be overridden by workflow_dispatch input
 
 jobs:
@@ -70,11 +67,19 @@ jobs:
             --set global.licenseplate=${{ vars.LICENSE_PLATE }} \
             --set global.serviceAccount.name=${{ vars.LICENSE_PLATE }}-vault \
             --set global.vault.role=${{ steps.set_vars.outputs.vault_role }} \
-            --set image.repository=${{ env.IMAGE_REPO }} \
-            --set image.tag=${{ env.IMAGE_TAG }} \
+            \
+            --set kilnAPI.image.repository=ghcr.io/bcgov/kiln-api \
+            --set kilnAPI.image.tag=${{ env.IMAGE_TAG }} \
+            --set kilnAPI.image.pullPolicy=Always \
+            \
+            --set nginx.image.repository=ghcr.io/bcgov/kiln-api-proxy \
+            --set nginx.image.tag=${{ env.IMAGE_TAG }} \
+            --set nginx.image.pullPolicy=Always \
+            \
             --set fullnameOverride="${{ steps.set_vars.outputs.release_name }}"
 
       - name: Trigger OpenShift Rollout
         run: |
-            oc rollout restart deployment/${{ steps.set_vars.outputs.release_name }}-client
-
+          NS="${{ vars.LICENSE_PLATE }}-${{ steps.set_vars.outputs.namespace }}"
+          oc -n "$NS" rollout restart deployment/${{ steps.set_vars.outputs.release_name }}-kiln-api
+          oc -n "$NS" rollout restart deployment/${{ steps.set_vars.outputs.release_name }}-nginx

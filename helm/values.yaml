@@ -32,7 +32,7 @@ kilnAPI:
   image:
     repository: "ghcr.io/bcgov/kiln-api"
     tag: "latest"
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
 
   vault:
     # Name of the Vault secret to inject into the container.
