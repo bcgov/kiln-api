@@ -1,5 +1,5 @@
 # Use the official NGINX stable image
-FROM nginx:1.25-alpine
+FROM nginxinc/nginx-unprivileged 
 
 # Set working directory
 WORKDIR /etc/nginx
@@ -39,10 +39,10 @@ RUN rm /etc/nginx/conf.d/default.conf
 # Ensure non-root user for OpenShift compatibility
 # NGINX runs as 'nginx' user by default (UID 101).
 # We ensure the logs and cache directories are writable.
-RUN chown -R nginx:nginx /var/cache/nginx /var/run /var/log/nginx && \
-    chmod -R 755 /var/cache/nginx /var/run /var/log/nginx
+# RUN chown -R nginx:nginx /var/cache/nginx /var/run /var/log/nginx && \
+#     chmod -R 755 /var/cache/nginx /var/run /var/log/nginx
 
-USER nginx
+# USER nginx
 
 # Expose HTTP (and HTTPS if you terminate SSL at NGINX)
 EXPOSE 8080 
