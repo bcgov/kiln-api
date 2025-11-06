@@ -29,18 +29,22 @@ jobs:
             ENV_NAMESPACE="prod"
             RELEASE_NAME="kiln-api"
             VAULT_ROLE="${{ vars.LICENSE_PLATE }}-prod"
+            IMAGE_TAG="latest"
             elif [[ "$BRANCH" == "test" ]]; then
             ENV_NAMESPACE="test"
              RELEASE_NAME="kiln-api-test"
             VAULT_ROLE="${{ vars.LICENSE_PLATE }}-nonprod"
+            IMAGE_TAG="test-latest"
             else
             ENV_NAMESPACE="dev"
             RELEASE_NAME="kiln-api-dev"
             VAULT_ROLE="${{ vars.LICENSE_PLATE }}-nonprod"
+            IMAGE_TAG="dev-latest"
             fi
             echo "namespace=$ENV_NAMESPACE" >> $GITHUB_OUTPUT
             echo "release_name=$RELEASE_NAME" >> $GITHUB_OUTPUT
             echo "vault_role=$VAULT_ROLE" >> $GITHUB_OUTPUT
+            echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
 
       - name: Install oc CLI
         uses: redhat-actions/oc-installer@v1
@@ -69,11 +73,11 @@ jobs:
             --set global.vault.role=${{ steps.set_vars.outputs.vault_role }} \
             \
             --set kilnAPI.image.repository=ghcr.io/bcgov/kiln-api \
-            --set kilnAPI.image.tag=${{ env.IMAGE_TAG }} \
+            --set kilnAPI.image.tag=${{ steps.set_vars.outputs.image_tag }} \
             --set kilnAPI.image.pullPolicy=Always \
             \
             --set nginx.image.repository=ghcr.io/bcgov/kiln-api-proxy \
-            --set nginx.image.tag=${{ env.IMAGE_TAG }} \
+            --set nginx.image.tag=${{ steps.set_vars.outputs.image_tag }} \
             --set nginx.image.pullPolicy=Always \
             \
             --set fullnameOverride="${{ steps.set_vars.outputs.release_name }}"
