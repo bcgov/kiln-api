@@ -54,6 +54,11 @@ kilnAPI:
     capabilities:
       drop:
         - ALL
+  
+  envFrom:
+  - secretRef:
+      name: kiln-api-secrets
+      optional: true
 
   env:
     - name: APP_ID
