@@ -1,9 +1,9 @@
-{{- if and .Values.nginx.enabled .Values.nginx.serverBlocks }}
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: {{ include "kilnAPI.fullname" . }}-nginx-conf
-data:
-  default.conf: |
-{{- nindent 4 .Values.nginx.serverBlocks }}
-{{- end }}
+# {{- if and .Values.nginx.enabled .Values.nginx.serverBlocks }}
+# apiVersion: v1
+# kind: ConfigMap
+# metadata:
+#   name: {{ include "kilnAPI.fullname" . }}-nginx-conf
+# data:
+#   default.conf: |
+# {{- nindent 4 .Values.nginx.serverBlocks }}
+# {{- end }}
