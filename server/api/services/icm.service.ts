@@ -906,9 +906,9 @@ export class ICMService {
           OfficeName: sessionParams.OfficeName,
           username: sessionParams.username,
           savedForm: JSON.stringify(savedData),
-          originalServer
         },
-        token
+        token,
+        originalServer
       );
 
       if (!saveResult.success) {

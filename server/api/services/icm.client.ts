@@ -63,8 +63,9 @@ export class ICMClient {
     };
   }
 
-  async saveICMData(payload: any): Promise<ICMJsonResponse> {
+  async saveICMData(payload: any, originalServer?: string): Promise<ICMJsonResponse> {
     try {
+
       const url = process.env.COMM_API_SAVEDATA_ICM_ENDPOINT_URL;
 
       if (!url) {
@@ -81,6 +82,11 @@ export class ICMClient {
         'Content-Type': 'application/json',
       };
 
+      if (originalServer) {
+        headers['X-Original-Server'] = originalServer;
+      }
+      console.log("Save Payload:",payload);
+      console.log("Save Headers:",headers)
       const response = await axios.post(url, payload, {
         headers,
         timeout,
