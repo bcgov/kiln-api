@@ -268,7 +268,7 @@ export class ICMService {
         L.warn('No authentication provided for ICM data save');
       }
 
-      const response = await this.icmClient.saveICMData(payload);
+      const response = await this.icmClient.saveICMData(payload, originalServer);
       return this.handleResponse(
         response,
         'Error saving form. Please try again.'
