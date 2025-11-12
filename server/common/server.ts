@@ -18,7 +18,7 @@ export default class ExpressServer {
     // Add explicit CORS middleware to allow kiln-v2 frontend access
     app.use((req, res, next) => {
       const allowedOrigins = (
-        process.env.CORS_ALLOWED_ORIGINS || 'http://localhost:5174'
+        process.env.CORS_ALLOWED_ORIGINS || 'http://localhost:8080'
       ).split(',');
       const origin = req.headers.origin;
 
