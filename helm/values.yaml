@@ -294,6 +294,7 @@ nginx:
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header Upgrade           $http_upgrade;
         proxy_set_header Connection        $connection_upgrade;
+        proxy_set_header X-Original-Server $http_x_original_server;
         proxy_redirect off;
       }
 
@@ -306,6 +307,7 @@ nginx:
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header Upgrade           $http_upgrade;
         proxy_set_header Connection        $connection_upgrade;
+        proxy_set_header X-Original-Server $http_x_original_server;
         proxy_redirect off;
 
         add_header Set-Cookie "originalServer=$http_x_original_server; Path=/; SameSite=Lax" always;
