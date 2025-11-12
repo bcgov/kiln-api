@@ -284,7 +284,7 @@ export class CommunicationsController {
 
   async saveFormData(req: AuthenticatedRequest, res: Response): Promise<void> {
     const originalServer = req.headers['x-original-server'] as string;
-    console.log("Original Server:",originalServer);
+
     try {
       const {
         action,

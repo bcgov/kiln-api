@@ -85,8 +85,7 @@ export class ICMClient {
       if (originalServer) {
         headers['X-Original-Server'] = originalServer;
       }
-      console.log("Save Payload:",payload);
-      console.log("Save Headers:",headers)
+
       const response = await axios.post(url, payload, {
         headers,
         timeout,
