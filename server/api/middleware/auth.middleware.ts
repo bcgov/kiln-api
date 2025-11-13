@@ -30,6 +30,32 @@ export function extractAuth(
 
     const username = req.body?.username || req.params?.username || req.cookies?.username;
 
+    const environment = process.env.ENVIRONMENT || process.env.NODE_ENV || '';
+    const isLocal = ['local', 'localhost', 'development', 'dev'].includes(environment.toLowerCase());
+
+    if (!isLocal && !token && username) {
+      logger.error('Token required in non-local environments', {
+        environment,
+        username: username || 'none',
+        route: req.path,
+      });
+      res.status(401).json({
+        error: 'Token required in non-local environments'
+      });
+      return;
+    }
+
+    if (!token && !username) {
+      logger.error('Authentication required', {
+        environment,
+        route: req.path,
+      });
+      res.status(401).json({
+        error: 'Authentication required: provide either token or username'
+      });
+      return;
+    }
+
     req.user = {
       token,
       username,
@@ -45,6 +71,8 @@ export function extractAuth(
       hasToken: !!token,
       username: username || 'anonymous',
       usernameSource,
+      environment,
+      isLocal,
       route: req.path,
     });
 
