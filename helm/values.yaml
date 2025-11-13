@@ -62,13 +62,11 @@ kilnAPI:
 
   env:
     - name: APP_ID
-      value: "kiln-api-test"
+      value: "kiln-api"
     - name: PORT
       value: "3000"
     - name: LOG_LEVEL
       value: "debug"
-    - name: REQUEST_LIMIT
-      value: "100kb"
     - name: SWAGGER_API_SPEC
       value: "/api/spec"
 
