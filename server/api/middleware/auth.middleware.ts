@@ -30,8 +30,19 @@ export function extractAuth(
 
     const username = req.body?.username || req.params?.username || req.cookies?.username;
 
-    const environment = process.env.ENVIRONMENT || process.env.NODE_ENV || '';
-    const isLocal = ['local', 'localhost', 'development', 'dev'].includes(environment.toLowerCase());
+    const environment = process.env.ENVIRONMENT;
+
+    if (!environment) {
+      logger.error('ENVIRONMENT variable is not set', {
+        route: req.path,
+      });
+      res.status(500).json({
+        error: 'Server configuration error: ENVIRONMENT variable is required'
+      });
+      return;
+    }
+
+    const isLocal = environment.toLowerCase() === 'local';
 
     if (!isLocal && !token && username) {
       logger.error('Token required in non-local environments', {
