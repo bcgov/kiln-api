@@ -30,6 +30,43 @@ export function extractAuth(
 
     const username = req.body?.username || req.params?.username || req.cookies?.username;
 
+    const environment = process.env.ENVIRONMENT;
+
+    if (!environment) {
+      logger.error('ENVIRONMENT variable is not set', {
+        route: req.path,
+      });
+      res.status(500).json({
+        error: 'Server configuration error: ENVIRONMENT variable is required'
+      });
+      return;
+    }
+
+    const isLocal = environment.toLowerCase() === 'local';
+
+    if (!isLocal && !token && username) {
+      logger.error('Token required in non-local environments', {
+        environment,
+        username: username || 'none',
+        route: req.path,
+      });
+      res.status(401).json({
+        error: 'Token required in non-local environments'
+      });
+      return;
+    }
+
+    if (!token && !username) {
+      logger.error('Authentication required', {
+        environment,
+        route: req.path,
+      });
+      res.status(401).json({
+        error: 'Authentication required: provide either token or username'
+      });
+      return;
+    }
+
     req.user = {
       token,
       username,
@@ -45,6 +82,8 @@ export function extractAuth(
       hasToken: !!token,
       username: username || 'anonymous',
       usernameSource,
+      environment,
+      isLocal,
       route: req.path,
     });
 
