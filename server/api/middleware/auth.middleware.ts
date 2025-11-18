@@ -55,7 +55,7 @@ export function extractAuth(
       });
       return;
     }
-    console.log("extractAuth check");
+
     if (!token && !username) {
       logger.error('Authentication required', {
         environment,
