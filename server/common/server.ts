@@ -14,6 +14,37 @@ export default class ExpressServer {
   private routes: (app: Application) => void;
   constructor() {
     const root = path.normalize(__dirname + '/../..');
+
+    // Add explicit CORS middleware to allow kiln-v2 frontend access
+    app.use((req, res, next) => {
+      const allowedOrigins = (
+        process.env.CORS_ALLOWED_ORIGINS || 'http://localhost:8080'
+      ).split(',');
+      const origin = req.headers.origin;
+
+      if (origin && allowedOrigins.includes(origin)) {
+        res.header('Access-Control-Allow-Origin', origin);
+      } else if (allowedOrigins.length === 1) {
+        res.header('Access-Control-Allow-Origin', allowedOrigins[0]);
+      }
+
+      res.header(
+        'Access-Control-Allow-Methods',
+        'GET, POST, PUT, DELETE, OPTIONS'
+      );
+      res.header(
+        'Access-Control-Allow-Headers',
+        'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-Original-Server'
+      );
+      res.header('Access-Control-Allow-Credentials', 'true');
+
+      if (req.method === 'OPTIONS') {
+        res.sendStatus(200);
+      } else {
+        next();
+      }
+    });
+
     app.use(bodyParser.json({ limit: process.env.REQUEST_LIMIT || '100kb' }));
     app.use(
       bodyParser.urlencoded({

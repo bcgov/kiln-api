@@ -1,26 +1,22 @@
 global:
   nameOverride: ""
   fullnameOverride: ""
-  licenseplate: "abcdef"
+  licenseplate: "ed84ea"
   cluster: "silver"
   serviceAccount:
-    name: "abcdef-vault"
+    name: "ed84ea-vault"
     # Specifies whether a service account should be created
     create: false
     # Automatically mount a ServiceAccount's API credentials?
     automount: true
   # -- List of servers proxied by the Kiln API
-  servers:
-    - domain: "app1.example.com" 
-      backend: "app1-backend.example.com"
-    - domain: "app2.example.com"
-      backend: "app2-backend.example.com"
+  servers: []
 
   # Inject Keycloak JSON multi-value config from a Vault secret
   # See details: https://digital.gov.bc.ca/technology/cloud/private/products-tools/vault/
   vault:
     # Vault role for this service
-    role: "abcdef-nonprod" 
+    role: "ed84ea-nonprod" 
     # Secrets path in container
     containerPath: "/vault/secrets/secrets"
     # Vault engine to use
@@ -36,7 +32,7 @@ kilnAPI:
   image:
     repository: "ghcr.io/bcgov/kiln-api"
     tag: "latest"
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
 
   vault:
     # Name of the Vault secret to inject into the container.
@@ -58,15 +54,19 @@ kilnAPI:
     capabilities:
       drop:
         - ALL
+  
+  envFrom:
+  - secretRef:
+      name: kiln-api-secrets
+      optional: true
+
   env:
     - name: APP_ID
-      value: "kiln-api-test"
+      value: "kiln-api"
     - name: PORT
       value: "3000"
     - name: LOG_LEVEL
       value: "debug"
-    - name: REQUEST_LIMIT
-      value: "100kb"
     - name: SWAGGER_API_SPEC
       value: "/api/spec"
 
@@ -100,7 +100,7 @@ kilnAPI:
       cpu: 50m
       memory: 128Mi
     requests:
-      cpu: 50m
+      cpu: 25m
       memory: 128Mi
 
   autoscaling:
@@ -253,44 +253,66 @@ nginx:
   # This will completely override the default generated server blocks.
   # Ensure proper Nginx syntax and indentation within this string.
   serverBlocks: |
-    server {
-        listen 443;
-        listen [::]:443;
-        server_name my.custom.domain.com; # Example custom domain
-
-        # Example SSL/TLS configuration
-        ssl_certificate /etc/nginx/certs/my.custom.domain.com.crt;
-        ssl_certificate_key /etc/nginx/certs/my.custom.domain.com.key;
-        ssl_protocols TLSv1.2 TLSv1.3;
-        ssl_ciphers 'TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256';
-        ssl_prefer_server_ciphers on;
-
-        error_page 401 403 = @login_required;
-        port_in_redirect off;
-
-        proxy_connect_timeout       75s;
-        proxy_send_timeout          75s;
-        proxy_read_timeout          300s;
-
-        location / {
-          auth_request /auth/;
-          auth_request_set $auth_status $upstream_status;
-        }
-
-        location /auth/ {
-          internal;
-        }
-
-        location /sso-login {
-        }
-
-        location /sso {
-        }
-
-        location @login_required {
-          return 302 /sso-login?relay=$request_uri;
-        }
+    upstream api_svc {
+      server kiln-api-dev-client-svc:80;
     }
+
+    upstream frontend_svc {
+      server kiln-v2-dev:8080;
+    }
+
+    map $http_username $username_cookie {
+      default "";
+      ""      "";
+      ~.+     "$http_username";
+    }
+
+    map $http_upgrade $connection_upgrade {
+      default upgrade;
+      ""      close;
+    }
+
+    server {
+      listen 8080;
+      server_name _;
+
+      location = /health {
+        access_log off;
+        return 200;
+      }
+
+      # Match both /api/ and /<subdomain>/api/:  
+      location ~ ^/(?:[^/]+/)?api/(.*)$ {
+        proxy_pass http://api_svc/api/$1$is_args$args;
+
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade           $http_upgrade;
+        proxy_set_header Connection        $connection_upgrade;
+        proxy_set_header X-Original-Server $http_x_original_server;
+        proxy_redirect off;
+      }
+
+      location / {
+        proxy_pass http://frontend_svc;
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade           $http_upgrade;
+        proxy_set_header Connection        $connection_upgrade;
+        proxy_set_header X-Original-Server $http_x_original_server;
+        proxy_redirect off;
+
+        add_header Set-Cookie "originalServer=$http_x_original_server; Path=/; SameSite=Lax" always;
+        add_header Set-Cookie "username=$username_cookie; Path=/" always;
+      }
+    }
+
 
   service:
     type: ClusterIP 
@@ -301,7 +323,7 @@ nginx:
   ingress:
     enabled: false # Set to true to use Kubernetes Ingress resource (requires Ingress Controller)
     className: "nginx" # Or your specific Ingress Controller class name
-    host: "sso.example.com" # REPLACE ME!
+    host: "sso.example.com"
     path: /
     pathType: Prefix
     annotations: {} # Add any specific Ingress annotations here (e.g., cert-manager, rewrite rules)
@@ -311,7 +333,7 @@ nginx:
 
   resources:
     requests:
-      cpu: 50m
+      cpu: 25m
       memory: 64Mi
     limits:
       cpu: 100m

@@ -1,0 +1,10 @@
+{{- $cmName := printf "%s-nginx-conf" (include "kilnAPI.fullname" .) -}}
+{{- if and .Values.nginx.enabled .Values.nginx.serverBlocks (not (lookup "v1" "ConfigMap" .Release.Namespace $cmName)) }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $cmName }}
+data:
+  default.conf: |
+{{ .Values.nginx.serverBlocks | nindent 4 }}
+{{- end }}
