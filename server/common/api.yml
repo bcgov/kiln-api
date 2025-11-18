@@ -220,12 +220,13 @@ paths:
           description: Unauthorized
         500:
           description: Internal server error
+
   /cancelForPortalAction:
     post:
       tags:
         - Communications Layer
         - ICM User Interface
-      description: Submit portal action
+      description: Cancel portal action
       parameters:
         - in: body
           name: actionData
@@ -241,13 +242,14 @@ paths:
                 description: Action configuration
       responses:
         200:
-          description: Portal action submitted successfully
+          description: Portal action cancelled successfully
         400:
           description: Bad request - missing required fields
         401:
           description: Unauthorized
         500:
           description: Internal server error
+          
   /saveForPortalAction:
     post:
       tags:
@@ -272,7 +274,7 @@ paths:
                 description: Action configuration
       responses:
         200:
-          description: Portal action submitted successfully
+          description: Portal action saved successfully
         400:
           description: Bad request - missing required fields
         401:
