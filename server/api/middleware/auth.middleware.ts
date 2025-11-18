@@ -28,7 +28,7 @@ export function extractAuth(
       token = authHeader;
     }
 
-    const username = req.body?.username || req.params?.username || req.cookies?.username;
+    const username = req.body?.username || req.params?.username || req.cookies?.username || req.body.sessionParams?.username;
 
     const environment = process.env.ENVIRONMENT;
 
