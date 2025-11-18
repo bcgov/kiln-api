@@ -113,7 +113,7 @@ export class CommunicationsController {
   }
 
   async generatePortalForm(
-    req: AuthenticatedRequest,
+    req: Request,
     res: Response
   ): Promise<void> {
     const originalServer = req.headers['x-original-server'] as string;
@@ -134,7 +134,7 @@ export class CommunicationsController {
   }
 
   async loadPortalForm(
-    req: AuthenticatedRequest,
+    req: Request,
     res: Response
   ): Promise<void> {
     try {

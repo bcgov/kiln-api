@@ -208,6 +208,62 @@ paths:
               tokenId:
                 type: string
                 description: Token ID for authentication
+              config:
+                type: object
+                description: Action configuration
+      responses:
+        200:
+          description: Portal action submitted successfully
+        400:
+          description: Bad request - missing required fields
+        401:
+          description: Unauthorized
+        500:
+          description: Internal server error
+  /cancelForPortalAction:
+    post:
+      tags:
+        - Communications Layer
+        - ICM User Interface
+      description: Submit portal action
+      parameters:
+        - in: body
+          name: actionData
+          required: true
+          schema:
+            type: object
+            properties:
+              tokenId:
+                type: string
+                description: Token ID for authentication
+              config:
+                type: object
+                description: Action configuration
+      responses:
+        200:
+          description: Portal action submitted successfully
+        400:
+          description: Bad request - missing required fields
+        401:
+          description: Unauthorized
+        500:
+          description: Internal server error
+  /saveForPortalAction:
+    post:
+      tags:
+        - Communications Layer
+        - ICM User Interface
+      description: save portal action
+      parameters:
+        - in: body
+          name: actionData
+          required: true
+          schema:
+            type: object
+            properties:
+              tokenId:
+                type: string
+                description: Token ID for authentication
               savedForm:
                 type: string
                 description: Saved form data
