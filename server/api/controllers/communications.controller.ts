@@ -66,7 +66,8 @@ export class CommunicationsController {
     const result = await ICMService.loadSavedJson(params);
 
     if (result.success) {
-      res.status(200).json(result.data);
+      const boundData = await ICMService.bindFormData(result.data);
+      res.status(200).json(boundData);
     } else {
       res.status(result.status || 500).json({ error: result.error });
     }
@@ -140,7 +141,9 @@ export class CommunicationsController {
     try {
       const requestData = (req.body ?? {}) as Record<string, any>;
       const token = getAuthToken(req);
-      const originalServer = req.headers['x-original-server'] as string | undefined;
+      const originalServer = req.headers['x-original-server'] as
+        | string
+        | undefined;
 
       // start loose, then enforce
       const payload: Record<string, any> = { ...requestData };
@@ -164,12 +167,12 @@ export class CommunicationsController {
       }
     } catch (error) {
       const errorMessage =
-        error instanceof Error && error.message ? error.message : 'Internal server error';
+        error instanceof Error && error.message
+          ? error.message
+          : 'Internal server error';
       res.status(500).json({ error: errorMessage });
     }
   }
-
-
 
   async loadBoundForm(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
@@ -364,7 +367,9 @@ export class CommunicationsController {
   // interface
   async getInterface(req: Request, res: Response): Promise<void> {
     try {
-      const originalServer = req.headers['x-original-server'] as string | undefined;
+      const originalServer = req.headers['x-original-server'] as
+        | string
+        | undefined;
       const result = await ICMService.getInterface(originalServer);
 
       if (result.success) {
@@ -382,11 +387,15 @@ export class CommunicationsController {
   // portal
   async saveForPortalAction(req: Request, res: Response): Promise<void> {
     try {
-      const originalServer = req.headers['x-original-server'] as string | undefined;
+      const originalServer = req.headers['x-original-server'] as
+        | string
+        | undefined;
       const { tokenId, savedForm, path, type, headers } = req.body || {};
 
       if (!tokenId || !savedForm) {
-        res.status(400).json({ error: 'Missing required fields: tokenId and savedForm' });
+        res
+          .status(400)
+          .json({ error: 'Missing required fields: tokenId and savedForm' });
         return;
       }
 
@@ -415,14 +424,19 @@ export class CommunicationsController {
 
   async submitForPortalAction(req: Request, res: Response): Promise<void> {
     try {
-      const originalServer = req.headers['x-original-server'] as string | undefined;
+      const originalServer = req.headers['x-original-server'] as
+        | string
+        | undefined;
       const { tokenId } = req.body || {};
       if (!tokenId) {
         res.status(400).json({ error: 'Missing required field: tokenId' });
         return;
       }
 
-      const result = await ICMService.submitForPortalAction({ tokenId }, originalServer);
+      const result = await ICMService.submitForPortalAction(
+        { tokenId },
+        originalServer
+      );
 
       if (result.success) {
         res.status(200).json(result.data); // { status: "success" }
@@ -438,7 +452,9 @@ export class CommunicationsController {
 
   async cancelForPortalAction(req: Request, res: Response): Promise<void> {
     try {
-      const originalServer = req.headers['x-original-server'] as string | undefined;
+      const originalServer = req.headers['x-original-server'] as
+        | string
+        | undefined;
       const { tokenId, path, type, headers } = req.body || {};
       if (!tokenId) {
         res.status(400).json({ error: 'Missing required field: tokenId' });
@@ -466,7 +482,6 @@ export class CommunicationsController {
       });
     }
   }
-
 }
 
 export default new CommunicationsController();
