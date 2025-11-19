@@ -18,7 +18,7 @@ router.post('/loadICMData', extractAuth, (req, res) =>
 router.post('/unlockICMData', extractAuth, (req, res) =>
   CommunicationsController.unlockICMData(req, res)
 );
-router.post('/loadSavedJson', extractAuth, (req, res) =>
+router.post('/loadSavedJson', (req, res) =>
   CommunicationsController.loadSavedJson(req, res)
 );
 router.post('/pdfRender/:pdfTemplateId', extractAuth, (req, res) =>
