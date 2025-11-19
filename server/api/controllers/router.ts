@@ -30,8 +30,14 @@ router.post('/generatePortalForm', extractAuth, (req, res) =>
 router.post('/loadPortalForm', extractAuth, (req, res) =>
   CommunicationsController.loadPortalForm(req, res)
 );
-router.post('/submitForPortalAction', extractAuth, (req, res) =>
+router.post('/submitForPortalAction', (req, res) =>
   CommunicationsController.submitForPortalAction(req, res)
+);
+router.post('/saveForPortalAction', (req, res) =>
+  CommunicationsController.saveForPortalAction(req, res)
+);
+router.post('/cancelForPortalAction', (req, res) =>
+  CommunicationsController.cancelForPortalAction(req, res)
 );
 router.post('/generateNewTemplate', extractAuth, (req, res) =>
   CommunicationsController.generateNewTemplate(req, res)
