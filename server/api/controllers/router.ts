@@ -24,10 +24,13 @@ router.post('/loadSavedJson', (req, res) =>
 router.post('/pdfRender/:pdfTemplateId', extractAuth, (req, res) =>
   CommunicationsController.pdfRender(req, res)
 );
-router.post('/generatePortalForm', extractAuth, (req, res) =>
+router.post('/getInterface', (req, res) =>
+  CommunicationsController.getInterface(req, res)
+);
+router.post('/generatePortalForm', (req, res) =>
   CommunicationsController.generatePortalForm(req, res)
 );
-router.post('/loadPortalForm', extractAuth, (req, res) =>
+router.post('/loadPortalForm', (req, res) =>
   CommunicationsController.loadPortalForm(req, res)
 );
 router.post('/submitForPortalAction', (req, res) =>
