@@ -118,13 +118,11 @@ export class CommunicationsController {
     res: Response
   ): Promise<void> {
     const originalServer = req.headers['x-original-server'] as string;
-    const { token, ...params } = req.body;
-    const authToken = getAuthToken(req);
-    const username = getUsername(req);
+    const { params } = req.body;
+
 
     const result = await ICMService.generatePortalForm(
-      { ...params, username, originalServer },
-      authToken
+      { params, originalServer },
     );
 
     if (result.success) {
@@ -140,14 +138,12 @@ export class CommunicationsController {
   ): Promise<void> {
     try {
       const requestData = (req.body ?? {}) as Record<string, any>;
-      const token = getAuthToken(req);
       const originalServer = req.headers['x-original-server'] as
         | string
         | undefined;
 
       // start loose, then enforce
       const payload: Record<string, any> = { ...requestData };
-      if (!payload.id && token) payload.id = token;
 
       // runtime guard so the cast is safe
       if (typeof payload.id !== 'string' || !payload.id.trim()) {
