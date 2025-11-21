@@ -113,16 +113,24 @@ export class CommunicationsController {
     }
   }
 
-  async generatePortalForm(
-    req: Request,
-    res: Response
-  ): Promise<void> {
-    const originalServer = req.headers['x-original-server'] as string;
-    const { params } = req.body;
+  async generatePortalForm(req: Request, res: Response): Promise<void> {
+    const requestData = (req.body ?? {}) as Record<string, any>;
+    const originalServer = req.headers['x-original-server'] as
+      | string
+      | undefined;
 
+    // start loose, then enforce
+    const payload: Record<string, any> = { ...requestData };
+
+    // runtime guard so the cast is safe
+    if (typeof payload.id !== 'string' || !payload.id.trim()) {
+      res.status(400).json({ error: 'Missing required field: id' });
+      return;
+    }
 
     const result = await ICMService.generatePortalForm(
-      { params, originalServer },
+      payload as { id: string } & Record<string, any>,
+      originalServer
     );
 
     if (result.success) {
@@ -132,10 +140,7 @@ export class CommunicationsController {
     }
   }
 
-  async loadPortalForm(
-    req: Request,
-    res: Response
-  ): Promise<void> {
+  async loadPortalForm(req: Request, res: Response): Promise<void> {
     try {
       const requestData = (req.body ?? {}) as Record<string, any>;
       const originalServer = req.headers['x-original-server'] as
@@ -363,12 +368,16 @@ export class CommunicationsController {
   // interface
   async getInterface(req: Request, res: Response): Promise<void> {
     try {
+      console.log(' In getInterface >');
       const originalServer = req.headers['x-original-server'] as
         | string
         | undefined;
+      console.log(' In getInterface originalServer>', originalServer);
       const result = await ICMService.getInterface(originalServer);
+      console.log('result >', result);
 
       if (result.success) {
+        console.log('result data >', result.data);
         res.status(200).json(result.data);
       } else {
         res.status(result.status || 500).json({ error: result.error });

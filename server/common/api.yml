@@ -125,7 +125,28 @@ paths:
       responses:
         200:
           description: Locked flag cleared successfully
-
+  /getInterface:
+    get:
+      tags:
+        - Communications Layer
+        - Kiln Interface
+      description: Get button interface
+      parameters:
+        - in: header
+          name: X-Original-Server
+          type: string
+          required: false
+          description: Original server of request
+      produces:
+        - application/json
+      responses:
+        200:
+          description: Get interface successfully
+        400:
+          description: Bad request - missing or invalid parameters
+        500:
+          description: Internal server error
+          
   /loadSavedJson:
     post:
       tags:

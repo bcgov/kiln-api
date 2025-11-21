@@ -24,7 +24,7 @@ router.post('/loadSavedJson', (req, res) =>
 router.post('/pdfRender/:pdfTemplateId', extractAuth, (req, res) =>
   CommunicationsController.pdfRender(req, res)
 );
-router.post('/getInterface', (req, res) =>
+router.get('/getInterface', (req, res) =>
   CommunicationsController.getInterface(req, res)
 );
 router.post('/generatePortalForm', (req, res) =>
