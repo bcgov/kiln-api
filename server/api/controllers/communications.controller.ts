@@ -160,9 +160,9 @@ export class CommunicationsController {
         payload as { id: string } & Record<string, any>,
         originalServer
       );
-
       if (result.success) {
-        res.status(200).json(result.data);
+        const boundData = await ICMService.bindFormData(result.data);
+        res.status(200).json(boundData);
       } else {
         res.status(result.status || 500).json({ error: result.error });
       }
@@ -368,16 +368,11 @@ export class CommunicationsController {
   // interface
   async getInterface(req: Request, res: Response): Promise<void> {
     try {
-      console.log(' In getInterface >');
       const originalServer = req.headers['x-original-server'] as
         | string
         | undefined;
-      console.log(' In getInterface originalServer>', originalServer);
       const result = await ICMService.getInterface(originalServer);
-      console.log('result >', result);
-
       if (result.success) {
-        console.log('result data >', result.data);
         res.status(200).json(result.data);
       } else {
         res.status(result.status || 500).json({ error: result.error });
