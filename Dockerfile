@@ -40,7 +40,7 @@ RUN echo "--- DEBUG 5b: List contents of /app/ in final stage ---" && ls -la /ap
 
 
 # Expose the port your Node.js app listens on
-EXPOSE 3000
+EXPOSE 3001
 
 # Command to run the application
 # This will execute 'node dist/index.js' as defined in your package.json's "start" script

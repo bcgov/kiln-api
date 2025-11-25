@@ -258,7 +258,7 @@ export class ICMClient {
   }
 
   async generatePortalForm(
-    payload: Record<string, any>,
+    payload: { id: string } | ({ portalFormId: string } & Record<string, any>),
     originalServer?: string
   ) {
     const url = (
@@ -358,6 +358,9 @@ export class ICMClient {
     payload: {
       tokenId: string;
       savedForm: string;
+      path?: string;
+      type?: string;
+      headers?: string;
     },
     originalServer?: string
   ): Promise<ICMJsonResponse> {

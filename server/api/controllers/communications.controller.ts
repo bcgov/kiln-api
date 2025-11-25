@@ -113,16 +113,24 @@ export class CommunicationsController {
     }
   }
 
-  async generatePortalForm(
-    req: Request,
-    res: Response
-  ): Promise<void> {
-    const originalServer = req.headers['x-original-server'] as string;
-    const { params } = req.body;
+  async generatePortalForm(req: Request, res: Response): Promise<void> {
+    const requestData = (req.body ?? {}) as Record<string, any>;
+    const originalServer = req.headers['x-original-server'] as
+      | string
+      | undefined;
 
+    // start loose, then enforce
+    const payload: Record<string, any> = { ...requestData };
+
+    // runtime guard so the cast is safe
+    if (typeof payload.id !== 'string' || !payload.id.trim()) {
+      res.status(400).json({ error: 'Missing required field: id' });
+      return;
+    }
 
     const result = await ICMService.generatePortalForm(
-      { params, originalServer },
+      payload as { id: string } & Record<string, any>,
+      originalServer
     );
 
     if (result.success) {
@@ -132,10 +140,7 @@ export class CommunicationsController {
     }
   }
 
-  async loadPortalForm(
-    req: Request,
-    res: Response
-  ): Promise<void> {
+  async loadPortalForm(req: Request, res: Response): Promise<void> {
     try {
       const requestData = (req.body ?? {}) as Record<string, any>;
       const originalServer = req.headers['x-original-server'] as
@@ -155,9 +160,9 @@ export class CommunicationsController {
         payload as { id: string } & Record<string, any>,
         originalServer
       );
-
       if (result.success) {
-        res.status(200).json(result.data);
+        const boundData = await ICMService.bindFormData(result.data);
+        res.status(200).json(boundData);
       } else {
         res.status(result.status || 500).json({ error: result.error });
       }
@@ -367,7 +372,6 @@ export class CommunicationsController {
         | string
         | undefined;
       const result = await ICMService.getInterface(originalServer);
-
       if (result.success) {
         res.status(200).json(result.data);
       } else {

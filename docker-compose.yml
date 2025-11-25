@@ -5,7 +5,7 @@ services:
       dockerfile: Dockerfile
     container_name: nodejs-api
     env_file:
-      - .env.local
+      - .env
     # Mount your local keycloak-raw.txt file into the container
     # Adjust the path after ':' to where your app expects it,
     # or keep it consistent with your K8s setup (e.g., /etc/config/keycloak-raw.txt)
@@ -15,4 +15,4 @@ services:
     stdin_open: true     # Keep stdin open
     tty: true            # Allocate a pseudo-TTY
     ports:
-      - "3000:3000"
+      - "3001:3001"
