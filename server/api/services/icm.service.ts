@@ -41,11 +41,13 @@ interface LoadICMDataRequest {
 interface UnlockICMDataPayload {
   token?: string;
   username?: string;
+  originalServer?: string;
   [key: string]: any;
 }
 
 interface UnlockICMDataRequest {
   username?: string;
+  originalServer?: string;
   [key: string]: any;
 }
 
@@ -349,7 +351,7 @@ export class ICMService {
     token?: string
   ): Promise<ICMDataResult> {
     try {
-      const { username, ...params } = data;
+      const { username, originalServer, ...params } = data;
 
       const payload: UnlockICMDataPayload = {
         ...params,

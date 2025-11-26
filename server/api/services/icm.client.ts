@@ -133,7 +133,9 @@ export class ICMClient {
     }
   }
 
-  async unlockICMData(payload: any): Promise<ICMJsonResponse> {
+  async unlockICMData(
+    payload: any,  
+    originalServer?: string): Promise<ICMJsonResponse> {
     try {
       const url = process.env.COMM_API_UNLOCK_ICM_ENDPOINT_URL;
 
@@ -147,10 +149,16 @@ export class ICMClient {
         ? parseInt(process.env.COMM_API_TIMEOUT, 10)
         : 30000;
 
-      const response = await axios.post(url, payload, {
-        headers: {
+        const headers: Record<string, string> = {
           'Content-Type': 'application/json',
-        },
+        };
+
+        if (originalServer) {
+          headers['X-Original-Server'] = originalServer;
+        }
+
+      const response = await axios.post(url, payload, {
+        headers,
         timeout,
       });
 
