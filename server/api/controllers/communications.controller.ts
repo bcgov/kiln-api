@@ -67,6 +67,11 @@ export class CommunicationsController {
 
     if (result.success) {
       const boundData = await ICMService.bindFormData(result.data);
+      // Preserve params from original response for generate flow
+      // Communication-Layer stores attachmentId, OfficeName, etc. in params
+      if (result.data?.params) {
+        boundData.params = result.data.params;
+      }
       res.status(200).json(boundData);
     } else {
       res.status(result.status || 500).json({ error: result.error });
