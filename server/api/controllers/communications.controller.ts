@@ -44,12 +44,13 @@ export class CommunicationsController {
   }
 
   async unlockICMData(req: AuthenticatedRequest, res: Response): Promise<void> {
-    const { token, ...params } = req.body;
+    const originalServer = req.headers['x-original-server'] as string;
+    const { ...params } = req.body;
     const authToken = getAuthToken(req);
     const username = getUsername(req);
 
     const result = await ICMService.unlockICMData(
-      { ...params, username },
+      { ...params, username, originalServer },
       authToken
     );
 
