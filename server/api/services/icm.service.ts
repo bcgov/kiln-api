@@ -370,8 +370,9 @@ export class ICMService {
           status: 401,
         };
       }
-
-      const response = await this.icmClient.unlockICMData(payload);
+      console.log("Unlock payload:",payload);
+      const response = await this.icmClient.unlockICMData(payload);    
+      console.log("Unlock api response:",response.status);
       return this.handleResponse(
         response,
         'Error unlocking ICM form. Please try again.'
