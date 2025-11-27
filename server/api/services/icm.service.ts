@@ -954,7 +954,6 @@ export class ICMService {
     originalServer?: string
   ): Promise<ICMDataResult> {
     try {
-      console.log("data in service.saveForPortalAction > ",data);
       const { tokenId, savedForm } = data || ({} as SaveForPortalActionRequest);
 
       if (!tokenId || !savedForm) {
