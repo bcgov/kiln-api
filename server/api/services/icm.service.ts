@@ -370,9 +370,7 @@ export class ICMService {
           status: 401,
         };
       }
-      console.log("Unlock payload:",payload);
-      const response = await this.icmClient.unlockICMData(payload);    
-      console.log("Unlock api response:",response.status);
+      const response = await this.icmClient.unlockICMData(payload, originalServer);    
       return this.handleResponse(
         response,
         'Error unlocking ICM form. Please try again.'
@@ -956,7 +954,6 @@ export class ICMService {
     originalServer?: string
   ): Promise<ICMDataResult> {
     try {
-      console.log("data in service.saveForPortalAction > ",data);
       const { tokenId, savedForm } = data || ({} as SaveForPortalActionRequest);
 
       if (!tokenId || !savedForm) {
