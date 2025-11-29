@@ -646,4 +646,52 @@ paths:
               error:
                 type: string
 
+  /loadPDFFromICMData:
+    post:
+      tags:
+        - Communications Layer
+        - Kiln Interface
+      summary: Load form data in PDF
+      description: Loads form data from ICM and create a PDF response
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: formRequest
+          required: true
+          schema:
+            type: object
+            properties:
+              attachmentId:
+                type: string
+                description: The attachment ID for the form
+              username:
+                type: string
+                description: Username for authentication
+              token:
+                type: string
+                description: Authentication token
+              isPortalIntegrated:
+                type: boolean
+                description: Whether to use portal integration
+            required:
+              - attachmentId
+      responses:
+        200:
+          description: Form data loaded and pdf created successfully
+          schema:
+            type: object
+            properties:
+              pdf_base64:
+                type: string
+                description: pdf in base64              
+        400:
+          description: Bad request - missing required parameters
+        401:
+          description: Unauthorized - authentication required
+        500:
+          description: Internal server error              
+
 

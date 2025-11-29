@@ -1058,6 +1058,43 @@ export class ICMService {
       return this.handleError(error, 'Failed to cancel portal action');
     }
   }
+  async loadPdfFromICMData(
+    data: LoadICMDataRequest,
+    token?: string
+  ): Promise<ICMDataResult> {
+    try {
+      const { username, originalServer, ...params } = data;
+
+      const payload: LoadICMDataPayload = {
+        ...params,
+      };
+
+      if (token) {
+        payload.token = token;
+      } else if (username?.trim()) {
+        payload.username = username;
+      } else {
+        L.warn('No authentication provided for ICM data load');
+        return {
+          success: false,
+          error:
+            'Authentication required: either token or username must be provided',
+          status: 401,
+        };
+      }
+
+      const response = await this.icmClient.loadPdfFromICMData(
+        payload,
+        originalServer
+      );
+      return this.handleResponse(
+        response,
+        'Error loading form. Please try again.'
+      );
+    } catch (error) {
+      return this.handleError(error, 'Failed to load ICM data');
+    }
+  }
 }
 
 export default new ICMService();

@@ -488,6 +488,36 @@ export class CommunicationsController {
       });
     }
   }
+
+  async loadPDFFromICMData(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const originalServer = req.headers['x-original-server'] as string;
+      const { isPortalIntegrated, ...params } = req.body;
+      const authToken = getAuthToken(req);
+      const username = getUsername(req);
+
+      let result;
+      
+      result = await ICMService.loadPdfFromICMData(
+        { ...params, username, originalServer },
+        authToken
+      );      
+
+      if (result.success) {       
+        res.status(200).json(result.data);
+      } else {
+        res.status(result.status || 500).json({ error: result.error });
+      }
+    } catch (error) {
+      let errorMessage = 'Internal server error';
+      if (error instanceof Error && error.message) {
+        errorMessage = error.message;
+      }
+      res.status(500).json({
+        error: errorMessage,
+      });
+    }
+  }
 }
 
 export default new CommunicationsController();
