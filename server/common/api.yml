@@ -605,12 +605,9 @@ paths:
           name: body
           required: false
           schema:
-            type: object
-            additionalProperties: true
-            properties:
-              attachment:
-                type: string
-                description: Base64-encoded JSON expected by the Communication Layer
+            type: array
+            items:
+              type: string
       responses:
         200:
           description: PDF generated
