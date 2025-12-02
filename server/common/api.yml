@@ -125,7 +125,28 @@ paths:
       responses:
         200:
           description: Locked flag cleared successfully
-
+  /getInterface:
+    get:
+      tags:
+        - Communications Layer
+        - Kiln Interface
+      description: Get button interface
+      parameters:
+        - in: header
+          name: X-Original-Server
+          type: string
+          required: false
+          description: Original server of request
+      produces:
+        - application/json
+      responses:
+        200:
+          description: Get interface successfully
+        400:
+          description: Bad request - missing or invalid parameters
+        500:
+          description: Internal server error
+          
   /loadSavedJson:
     post:
       tags:
@@ -208,6 +229,64 @@ paths:
               tokenId:
                 type: string
                 description: Token ID for authentication
+              config:
+                type: object
+                description: Action configuration
+      responses:
+        200:
+          description: Portal action submitted successfully
+        400:
+          description: Bad request - missing required fields
+        401:
+          description: Unauthorized
+        500:
+          description: Internal server error
+
+  /cancelForPortalAction:
+    post:
+      tags:
+        - Communications Layer
+        - ICM User Interface
+      description: Cancel portal action
+      parameters:
+        - in: body
+          name: actionData
+          required: true
+          schema:
+            type: object
+            properties:
+              tokenId:
+                type: string
+                description: Token ID for authentication
+              config:
+                type: object
+                description: Action configuration
+      responses:
+        200:
+          description: Portal action cancelled successfully
+        400:
+          description: Bad request - missing required fields
+        401:
+          description: Unauthorized
+        500:
+          description: Internal server error
+          
+  /saveForPortalAction:
+    post:
+      tags:
+        - Communications Layer
+        - ICM User Interface
+      description: save portal action
+      parameters:
+        - in: body
+          name: actionData
+          required: true
+          schema:
+            type: object
+            properties:
+              tokenId:
+                type: string
+                description: Token ID for authentication
               savedForm:
                 type: string
                 description: Saved form data
@@ -216,7 +295,7 @@ paths:
                 description: Action configuration
       responses:
         200:
-          description: Portal action submitted successfully
+          description: Portal action saved successfully
         400:
           description: Bad request - missing required fields
         401:
@@ -526,12 +605,9 @@ paths:
           name: body
           required: false
           schema:
-            type: object
-            additionalProperties: true
-            properties:
-              attachment:
-                type: string
-                description: Base64-encoded JSON expected by the Communication Layer
+            type: array
+            items:
+              type: string
       responses:
         200:
           description: PDF generated

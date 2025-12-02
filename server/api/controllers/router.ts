@@ -18,20 +18,29 @@ router.post('/loadICMData', extractAuth, (req, res) =>
 router.post('/unlockICMData', extractAuth, (req, res) =>
   CommunicationsController.unlockICMData(req, res)
 );
-router.post('/loadSavedJson', extractAuth, (req, res) =>
+router.post('/loadSavedJson', (req, res) =>
   CommunicationsController.loadSavedJson(req, res)
 );
 router.post('/pdfRender/:pdfTemplateId', extractAuth, (req, res) =>
   CommunicationsController.pdfRender(req, res)
 );
-router.post('/generatePortalForm', extractAuth, (req, res) =>
+router.get('/getInterface', (req, res) =>
+  CommunicationsController.getInterface(req, res)
+);
+router.post('/generatePortalForm', (req, res) =>
   CommunicationsController.generatePortalForm(req, res)
 );
-router.post('/loadPortalForm', extractAuth, (req, res) =>
+router.post('/loadPortalForm', (req, res) =>
   CommunicationsController.loadPortalForm(req, res)
 );
-router.post('/submitForPortalAction', extractAuth, (req, res) =>
+router.post('/submitForPortalAction', (req, res) =>
   CommunicationsController.submitForPortalAction(req, res)
+);
+router.post('/saveForPortalAction', (req, res) =>
+  CommunicationsController.saveForPortalAction(req, res)
+);
+router.post('/cancelForPortalAction', (req, res) =>
+  CommunicationsController.cancelForPortalAction(req, res)
 );
 router.post('/generateNewTemplate', extractAuth, (req, res) =>
   CommunicationsController.generateNewTemplate(req, res)
