@@ -1089,10 +1089,10 @@ export class ICMService {
       );
       return this.handleResponse(
         response,
-        'Error loading form. Please try again.'
+        'Error loading pdf . Please try again.'
       );
     } catch (error) {
-      return this.handleError(error, 'Failed to load ICM data');
+      return this.handleError(error, 'Failed to load ICM data for PDF');
     }
   }
 }

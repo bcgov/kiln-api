@@ -499,7 +499,7 @@ export class ICMClient {
 
       return this.createJsonResponse(response);
     } catch (error) {
-      return this.handleJsonError(error, 'loadICMData');
+      return this.handleJsonError(error, 'loadPdfFromICMData');
     }
   }
 }
