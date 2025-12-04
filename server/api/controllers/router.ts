@@ -57,6 +57,9 @@ router.post('/saveFormData', extractAuth, (req, res) =>
 router.post('/generatePDFFromJson', (req, res) =>
   CommunicationsController.generatePdfFromJson(req, res)
 );
+router.post('/loadPDFFromICMData', extractAuth, (req, res) =>
+  CommunicationsController.loadPDFFromICMData(req, res)
+);
 
 // Kiln Renderer Routes
 router.get('/view', (req, res) => RendererController.viewForm(req, res));
