@@ -881,7 +881,7 @@ export class ICMService {
       }
 
       if (action === 'save_and_close') {
-        const unlockResult = await this.unlockICMData(sessionParams, token);
+        const unlockResult = await this.unlockICMData({ ...sessionParams, originalServer }, token);
         if (!unlockResult.success) {
           L.warn('Save succeeded but unlock failed:', unlockResult.error);
         }
