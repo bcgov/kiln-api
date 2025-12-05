@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import logger from '../../common/logger';
+import L from '../../common/logger';
 
 export interface AuthenticatedRequest extends Request {
   user?: {
@@ -32,9 +32,7 @@ export function extractAuth(
 
     
     if (!token && !username) {
-      logger.error('Authentication required', {
-        route: req.path,
-      });
+      L.error({route: req.path}, 'Authentication required');
       res.status(401).json({
         error: 'Authentication required: provide either token or username'
       });
@@ -52,16 +50,16 @@ export function extractAuth(
     else if (req.params?.username) usernameSource = 'params';
     else if (req.cookies?.username) usernameSource = 'cookie';
 
-    logger.debug('Auth extracted', {
+    L.debug({
       hasToken: !!token,
       username: username || 'anonymous',
       usernameSource,
       route: req.path,
-    });
+    },'Auth extracted');
 
     next();
   } catch (error) {
-    logger.error('Error extracting auth:', error);
+    L.error({err: error}, 'Error extracting auth');
     res.status(500).json({ error: 'Authentication processing failed' });
   }
 }
@@ -72,7 +70,7 @@ export function validateAuth(
   next: NextFunction
 ): void {
   if (!req.user) {
-    logger.warn('No user context found, running extractAuth first');
+    L.warn('No user context found, running extractAuth first');
     return extractAuth(req, res, next);
   }
 

@@ -16,7 +16,7 @@ interface ICMBlobResponse {
 
 export class ICMClient {
   private handleJsonError(error: any, operationName: string): ICMJsonResponse {
-    L.error(`ICMClient ${operationName} request failed:`, error);
+    L.error({ err: error }, `ICMClient ${operationName} request failed:`);
 
     if (error && typeof error === 'object' && 'response' in error) {
       const axiosError = error as any;
@@ -32,7 +32,7 @@ export class ICMClient {
   }
 
   private handleBlobError(error: any, operationName: string): ICMBlobResponse {
-    L.error(`ICMClient ${operationName} request failed:`, error);
+    L.error({ err: error }, `ICMClient ${operationName} request failed:`);
 
     if (error && typeof error === 'object' && 'response' in error) {
       const axiosError = error as any;
@@ -157,7 +157,7 @@ export class ICMClient {
           headers['X-Original-Server'] = originalServer;
         }
 
-        L.info('unlockICMData outgoing', { url, headers, payload });
+        L.info({ url, headers, payload }, 'unlockICMData outgoing');
       const response = await axios.post(url, payload, {
         headers,
         timeout,
