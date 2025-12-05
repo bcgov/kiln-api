@@ -5,6 +5,7 @@ import {
   getAuthToken,
   getUsername,
 } from '../middleware/auth.middleware';
+import L from '../../common/logger';
 
 export class CommunicationsController {
   async generateForm(req: AuthenticatedRequest, res: Response): Promise<void> {
@@ -256,6 +257,16 @@ export class CommunicationsController {
       const requestData = req.body;
       const authToken = getAuthToken(req);
       const originalServer = req.headers['x-original-server'] as string;
+
+      L.info(
+        {
+          route: 'generateNewTemplate',
+          requestData,
+          authToken,
+          originalServer
+        },
+        'Incoming generateNewTemplate request'
+      );
 
       const result = await ICMService.generateNewTemplate(
         {
