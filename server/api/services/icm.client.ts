@@ -157,7 +157,6 @@ export class ICMClient {
           headers['X-Original-Server'] = originalServer;
         }
 
-        L.info({ url, headers, payload }, 'unlockICMData outgoing');
       const response = await axios.post(url, payload, {
         headers,
         timeout,
