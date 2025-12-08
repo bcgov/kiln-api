@@ -501,6 +501,7 @@ export class ICMService {
 
   async generateNewTemplate(
     data: Record<string, unknown>,
+    authToken?: string,
     originalServer?: string
   ): Promise<ICMDataResult> {
     try {
@@ -529,6 +530,7 @@ export class ICMService {
       // call CommLayer
       const response = await this.icmClient.generateNewTemplate(
         data,
+        authToken,
         originalServer
       );
 

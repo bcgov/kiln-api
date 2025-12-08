@@ -293,7 +293,10 @@ export class ICMClient {
     }
   }
 
-  async generateNewTemplate(payload: any, originalServer?: string): Promise<ICMJsonResponse> {
+  async generateNewTemplate(payload: any,
+    authToken?: string,
+    originalServer?: string
+  ): Promise<ICMJsonResponse> {
     try {
       const url = process.env.COMM_API_GENERATE_NEWTEMPLATE_ENDPOINT_URL;
       if (!url) {
@@ -304,6 +307,11 @@ export class ICMClient {
         : 30000;
 
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+      
       if (originalServer) {
         headers['X-Original-Server'] = originalServer;
       }
