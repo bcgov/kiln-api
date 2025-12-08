@@ -273,7 +273,8 @@ export class CommunicationsController {
           ...requestData,
           ...(originalServer ? { originalServer } : {}),
         },
-        authToken
+        authToken,
+        originalServer
       );
 
       if (result.success) {
