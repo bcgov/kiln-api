@@ -292,6 +292,14 @@ export class CommunicationsController {
   async saveFormData(req: AuthenticatedRequest, res: Response): Promise<void> {
     const originalServer = req.headers['x-original-server'] as string;
 
+    L.debug({
+      method: req.method,
+      headers: req.headers,        
+      params: req.params,          
+      query: req.query,            
+      body: req.body},
+      'saveFormData: full incoming request');
+
     try {
       const {
         action,
