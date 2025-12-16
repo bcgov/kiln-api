@@ -271,11 +271,11 @@ export class ICMService {
     try {
       const { attachmentId, OfficeName, username, savedForm } = data;
 
-      if (!attachmentId || !OfficeName || !savedForm) {
+      if (!attachmentId || !savedForm) {
         return {
           success: false,
           error:
-            'Missing required fields: attachmentId, OfficeName, or savedForm',
+            'Missing required fields: attachmentId or savedForm',
           status: 400,
         };
       }
