@@ -398,9 +398,9 @@ paths:
                 type: string
                 description: Form template identifier (required)
                 example: "CF8787"
-              area:
+              Area:
                 type: string
-                description: Business area (validated against ICM metadata)
+                description: Business area (validated against ICM metadata) (required)
                 example: "Service Request"
               CaseId:
                 type: string
@@ -412,10 +412,18 @@ paths:
               SRId:
                 type: string
                 description: Optional Service Request identifier
+              Version:
+                type: number 
+                description: Version of the form (required)
+              username:
+                type: string
+                description: ICM username (required)
             required:
               - attachmentId
               - formId
-              - area
+              - Area
+              - Version
+              - username
       responses:
         200:
           description: Form successfully generated

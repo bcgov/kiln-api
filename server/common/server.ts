@@ -4,7 +4,7 @@ import bodyParser from 'body-parser';
 import http from 'http';
 import os from 'os';
 import cookieParser from 'cookie-parser';
-import l from './logger';
+import L from './logger';
 
 import installValidator from './swagger';
 
@@ -64,7 +64,7 @@ export default class ExpressServer {
 
   listen(port: number): Application {
     const welcome = (p: number) => (): void =>
-      l.info(
+      L.info(
         `up and running in ${
           process.env.NODE_ENV || 'development'
         } @: ${os.hostname()} on port: ${p}}`
@@ -75,7 +75,7 @@ export default class ExpressServer {
         http.createServer(app).listen(port, welcome(port));
       })
       .catch((e) => {
-        l.error(e);
+        L.error(e);
         process.exit(1);
       });
 

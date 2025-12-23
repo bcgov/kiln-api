@@ -209,7 +209,7 @@ export class ICMService {
         ? error
         : 'Unknown error occurred';
 
-    L.error(errorMessage, error);
+    L.error({err: error}, errorMessage);
 
     return {
       success: false,
@@ -231,7 +231,7 @@ export class ICMService {
     } else {
       const errorData = (await response.json().catch(() => ({}))) as any;
       const errorMessage = errorData?.error || defaultErrorMessage;
-      L.error('ICMClient API Error:', errorMessage);
+      L.error({ err: errorMessage },'ICMClient API Error');
       return {
         success: false,
         error: errorMessage,
@@ -254,7 +254,7 @@ export class ICMService {
         data: pdfData,
       };
     } else {
-      L.error('PDF generation failed:', defaultErrorMessage);
+      L.error({ err: defaultErrorMessage}, 'PDF generation failed:');
       return {
         success: false,
         error: defaultErrorMessage,
@@ -501,6 +501,7 @@ export class ICMService {
 
   async generateNewTemplate(
     data: Record<string, unknown>,
+    authToken?: string,
     originalServer?: string
   ): Promise<ICMDataResult> {
     try {
@@ -529,6 +530,7 @@ export class ICMService {
       // call CommLayer
       const response = await this.icmClient.generateNewTemplate(
         data,
+        authToken,
         originalServer
       );
 
@@ -572,7 +574,7 @@ export class ICMService {
         bound: true,
       };
     } catch (error) {
-      L.error('Error binding form data:', error);
+      L.error({ err: error }, 'Error binding form data');
       return this.handleError(error, 'Failed to bind form data');
     }
   }
@@ -881,7 +883,7 @@ export class ICMService {
       }
 
       if (action === 'save_and_close') {
-        const unlockResult = await this.unlockICMData(sessionParams, token);
+        const unlockResult = await this.unlockICMData({ ...sessionParams, originalServer }, token);
         if (!unlockResult.success) {
           L.warn('Save succeeded but unlock failed:', unlockResult.error);
         }

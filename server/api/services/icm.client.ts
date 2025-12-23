@@ -16,7 +16,7 @@ interface ICMBlobResponse {
 
 export class ICMClient {
   private handleJsonError(error: any, operationName: string): ICMJsonResponse {
-    L.error(`ICMClient ${operationName} request failed:`, error);
+    L.error({ err: error }, `ICMClient ${operationName} request failed:`);
 
     if (error && typeof error === 'object' && 'response' in error) {
       const axiosError = error as any;
@@ -32,7 +32,7 @@ export class ICMClient {
   }
 
   private handleBlobError(error: any, operationName: string): ICMBlobResponse {
-    L.error(`ICMClient ${operationName} request failed:`, error);
+    L.error({ err: error }, `ICMClient ${operationName} request failed:`);
 
     if (error && typeof error === 'object' && 'response' in error) {
       const axiosError = error as any;
@@ -293,7 +293,10 @@ export class ICMClient {
     }
   }
 
-  async generateNewTemplate(payload: any, originalServer?: string): Promise<ICMJsonResponse> {
+  async generateNewTemplate(payload: any,
+    authToken?: string,
+    originalServer?: string
+  ): Promise<ICMJsonResponse> {
     try {
       const url = process.env.COMM_API_GENERATE_NEWTEMPLATE_ENDPOINT_URL;
       if (!url) {
@@ -304,6 +307,11 @@ export class ICMClient {
         : 30000;
 
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+      
       if (originalServer) {
         headers['X-Original-Server'] = originalServer;
       }
