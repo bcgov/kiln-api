@@ -6,6 +6,8 @@ on:
   push:
     branches:
       - main # Trigger on pushes to the main branch
+      - test
+      - dev
     tags:
       - 'v*.*.*' # Trigger on new tags like v1.0.0, v1.0.1, etc.
   workflow_dispatch: # Allows manual triggering from the GitHub UI
@@ -41,7 +43,9 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.PROXY_IMAGE_NAME }}
           tags: |
-            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=test-latest,enable=${{ github.ref == 'refs/heads/test' }}
+            type=raw,value=dev-latest,enable=${{ github.ref == 'refs/heads/dev' }}
             type=sha,format=short
             type=ref,event=tag
 
@@ -59,5 +63,5 @@ jobs:
 
       - name: Verify Pushed Images
         run: |
-          echo "Proxy Image Pushed: ${{ env.REGISTRY }}/${{ env.PROXY_IMAGE_NAME }}:latest and ${{ github.sha }}"
+          echo "Proxy Image Pushed: ${{ steps.metaProxy.outputs.tags }}"
 

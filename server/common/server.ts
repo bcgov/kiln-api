@@ -4,7 +4,7 @@ import bodyParser from 'body-parser';
 import http from 'http';
 import os from 'os';
 import cookieParser from 'cookie-parser';
-import l from './logger';
+import L from './logger';
 
 import installValidator from './swagger';
 
@@ -17,21 +17,32 @@ export default class ExpressServer {
 
     // Add explicit CORS middleware to allow kiln-v2 frontend access
     app.use((req, res, next) => {
-      const headers = {
-        'Access-Control-Allow-Origin': process.env.CORS_ALLOWED_ORIGINS || 'http://localhost:5174',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers':
-          'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-Original-Server',
-        'Access-Control-Allow-Credentials': 'true',
-      };
+      const allowedOrigins = (
+        process.env.CORS_ALLOWED_ORIGINS || 'http://localhost:8080'
+      ).split(',');
+      const origin = req.headers.origin;
 
-      Object.entries(headers).forEach(([key, value]) => res.header(key, value));
+      if (origin && allowedOrigins.includes(origin)) {
+        res.header('Access-Control-Allow-Origin', origin);
+      } else if (allowedOrigins.length === 1) {
+        res.header('Access-Control-Allow-Origin', allowedOrigins[0]);
+      }
+
+      res.header(
+        'Access-Control-Allow-Methods',
+        'GET, POST, PUT, DELETE, OPTIONS'
+      );
+      res.header(
+        'Access-Control-Allow-Headers',
+        'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-Original-Server'
+      );
+      res.header('Access-Control-Allow-Credentials', 'true');
 
       if (req.method === 'OPTIONS') {
         res.sendStatus(200);
-        return;
+      } else {
+        next();
       }
-      next();
     });
 
     app.use(bodyParser.json({ limit: process.env.REQUEST_LIMIT || '100kb' }));
@@ -53,7 +64,7 @@ export default class ExpressServer {
 
   listen(port: number): Application {
     const welcome = (p: number) => (): void =>
-      l.info(
+      L.info(
         `up and running in ${
           process.env.NODE_ENV || 'development'
         } @: ${os.hostname()} on port: ${p}}`
@@ -64,7 +75,7 @@ export default class ExpressServer {
         http.createServer(app).listen(port, welcome(port));
       })
       .catch((e) => {
-        l.error(e);
+        L.error(e);
         process.exit(1);
       });
 

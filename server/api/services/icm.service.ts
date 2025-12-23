@@ -7,6 +7,7 @@ interface SaveICMDataPayload {
   savedForm: any;
   token?: string;
   username?: string;
+  originalServer?: string;
 }
 
 interface SaveICMDataRequest {
@@ -14,6 +15,7 @@ interface SaveICMDataRequest {
   OfficeName: string;
   username?: string;
   savedForm: any;
+  originalServer?: string;
 }
 
 interface SaveICMDataResult {
@@ -39,11 +41,13 @@ interface LoadICMDataRequest {
 interface UnlockICMDataPayload {
   token?: string;
   username?: string;
+  originalServer?: string;
   [key: string]: any;
 }
 
 interface UnlockICMDataRequest {
   username?: string;
+  originalServer?: string;
   [key: string]: any;
 }
 
@@ -91,8 +95,19 @@ interface PdfRenderResult {
   status?: number;
 }
 
+interface GeneratePortalFormRequest {
+  id: string; // portal token required by Comm Layer
+}
+
+interface GeneratePortalFormResult {
+  success: boolean;
+  data?: any;
+  error?: string;
+  status?: number;
+}
+
 interface LoadPortalFormRequest {
-  [key: string]: any;
+  id: string; // portal token required by Comm Layer
 }
 
 interface LoadPortalFormResult {
@@ -162,6 +177,20 @@ interface SavedData {
   metadata: Record<string, any>;
 }
 
+interface SaveForPortalActionRequest {
+  tokenId: string;
+  savedForm: string;
+  path?: string;
+  type?: string;
+  headers?: string;
+}
+interface SubmitPortalActionRequest {
+  tokenId: string;
+}
+interface CancelPortalActionRequest {
+  tokenId: string;
+}
+
 export class ICMService {
   private icmClient: ICMClient;
 
@@ -180,7 +209,7 @@ export class ICMService {
         ? error
         : 'Unknown error occurred';
 
-    L.error(errorMessage, error);
+    L.error({err: error}, errorMessage);
 
     return {
       success: false,
@@ -202,7 +231,7 @@ export class ICMService {
     } else {
       const errorData = (await response.json().catch(() => ({}))) as any;
       const errorMessage = errorData?.error || defaultErrorMessage;
-      L.error('ICMClient API Error:', errorMessage);
+      L.error({ err: errorMessage },'ICMClient API Error');
       return {
         success: false,
         error: errorMessage,
@@ -225,7 +254,7 @@ export class ICMService {
         data: pdfData,
       };
     } else {
-      L.error('PDF generation failed:', defaultErrorMessage);
+      L.error({ err: defaultErrorMessage}, 'PDF generation failed:');
       return {
         success: false,
         error: defaultErrorMessage,
@@ -236,7 +265,8 @@ export class ICMService {
 
   async saveICMData(
     data: SaveICMDataRequest,
-    token?: string
+    token?: string,
+    originalServer?: string
   ): Promise<SaveICMDataResult> {
     try {
       const { attachmentId, OfficeName, username, savedForm } = data;
@@ -254,6 +284,7 @@ export class ICMService {
         attachmentId,
         OfficeName,
         savedForm,
+        originalServer,
       };
 
       if (token) {
@@ -264,7 +295,10 @@ export class ICMService {
         L.warn('No authentication provided for ICM data save');
       }
 
-      const response = await this.icmClient.saveICMData(payload);
+      const response = await this.icmClient.saveICMData(
+        payload,
+        originalServer
+      );
       return this.handleResponse(
         response,
         'Error saving form. Please try again.'
@@ -317,7 +351,7 @@ export class ICMService {
     token?: string
   ): Promise<ICMDataResult> {
     try {
-      const { username, ...params } = data;
+      const { username, originalServer, ...params } = data;
 
       const payload: UnlockICMDataPayload = {
         ...params,
@@ -336,8 +370,7 @@ export class ICMService {
           status: 401,
         };
       }
-
-      const response = await this.icmClient.unlockICMData(payload);
+      const response = await this.icmClient.unlockICMData(payload, originalServer);    
       return this.handleResponse(
         response,
         'Error unlocking ICM form. Please try again.'
@@ -440,52 +473,11 @@ export class ICMService {
   }
 
   async generatePortalForm(
-    data: { username?: string; originalServer?: string; [k: string]: any },
-    token?: string
-  ): Promise<{
-    success: boolean;
-    data?: any;
-    error?: string;
-    status?: number;
-  }> {
-    try {
-      const { username, originalServer, ...params } = data || {};
-      const payload: Record<string, any> = { ...params };
-
-      if (token && String(token).trim()) {
-        payload.token = token;
-      } else if (username && String(username).trim()) {
-        payload.username = username;
-      } else {
-        return {
-          success: false,
-          status: 401,
-          error:
-            'Authentication required: either token or username must be provided',
-        };
-      }
-
-      const resp = await this.icmClient.generatePortalForm(
-        payload,
-        originalServer
-      );
-
-      return this.handleResponse(
-        resp,
-        'Error generating portal form. Please try again.'
-      );
-    } catch (err) {
-      return this.handleError(err, 'Failed to generate portal form');
-    }
-  }
-
-  async loadPortalForm(
-    data: LoadPortalFormRequest,
-    token?: string,
+    data: GeneratePortalFormRequest,
     originalServer?: string
-  ): Promise<LoadPortalFormResult> {
+  ): Promise<GeneratePortalFormResult> {
     try {
-      if (!data || Object.keys(data).length === 0) {
+      if (!data || !data.id || typeof data.id !== 'string' || !data.id.trim()) {
         return {
           success: false,
           error: 'Request data is required',
@@ -493,51 +485,58 @@ export class ICMService {
         };
       }
 
-      const payload = {
-        ...data,
-        ...(token && { token }),
-      };
-
-      const response = await this.icmClient.loadPortalForm(
-        payload,
+      const response = await this.icmClient.generatePortalForm(
+        data,
         originalServer
       );
+
       return this.handleResponse(
         response,
-        'Error loading portal form. Please try again.'
+        'Error generating portal form. Please try again.'
       );
-    } catch (error) {
-      return this.handleError(error, 'Failed to load portal form');
+    } catch (err) {
+      return this.handleError(err, 'Failed to generate portal form');
     }
   }
 
-  async submitForPortalAction(
-    data: SubmitButtonActionRequest
-  ): Promise<SubmitButtonActionResult> {
+  async generateNewTemplate(
+    data: Record<string, unknown>,
+    authToken?: string,
+    originalServer?: string
+  ): Promise<ICMDataResult> {
     try {
-      const { tokenId, savedForm, config } = data;
+      // check required fields
+      const attachmentId = (data['attachmentId'] ?? data['AttachmentId']) as
+        | string
+        | undefined;
+      const area = (data['Area'] ?? data['area']) as string | undefined;
+      const formId = (data['FormId'] ?? data['formId']) as string | undefined;
 
-      if (!tokenId || !savedForm || !config) {
+      if (!attachmentId?.trim())
         return {
           success: false,
-          error: 'Missing required fields: tokenId, savedForm, or config',
           status: 400,
+          error: 'attachmentId is required',
         };
-      }
+      if (!area?.trim())
+        return { success: false, status: 400, error: 'Area is required' };
+      if (!formId?.trim())
+        return {
+          success: false,
+          status: 400,
+          error: 'FormId (or formId) is required',
+        };
 
-      const payload: SubmitButtonActionPayload = {
-        tokenId,
-        savedForm,
-        config,
-      };
-
-      const response = await this.icmClient.submitForPortalAction(payload);
-      return this.handleResponse(
-        response,
-        'Error submitting button action. Please try again.'
+      // call CommLayer
+      const response = await this.icmClient.generateNewTemplate(
+        data,
+        authToken,
+        originalServer
       );
+
+      return this.handleResponse(response, 'The form cannot be generated.');
     } catch (error) {
-      return this.handleError(error, 'Failed to submit button action');
+      return this.handleError(error, 'Failed to generate new template');
     }
   }
 
@@ -575,7 +574,7 @@ export class ICMService {
         bound: true,
       };
     } catch (error) {
-      L.error('Error binding form data:', error);
+      L.error({ err: error }, 'Error binding form data');
       return this.handleError(error, 'Failed to bind form data');
     }
   }
@@ -837,7 +836,8 @@ export class ICMService {
 
   async saveFormData(
     data: SaveFormDataRequest,
-    token?: string
+    token?: string,
+    originalServer?: string
   ): Promise<SaveFormDataResult> {
     try {
       const {
@@ -874,7 +874,8 @@ export class ICMService {
           username: sessionParams.username,
           savedForm: JSON.stringify(savedData),
         },
-        token
+        token,
+        originalServer
       );
 
       if (!saveResult.success) {
@@ -882,7 +883,7 @@ export class ICMService {
       }
 
       if (action === 'save_and_close') {
-        const unlockResult = await this.unlockICMData(sessionParams, token);
+        const unlockResult = await this.unlockICMData({ ...sessionParams, originalServer }, token);
         if (!unlockResult.success) {
           L.warn('Save succeeded but unlock failed:', unlockResult.error);
         }
@@ -909,6 +910,191 @@ export class ICMService {
         error,
         'Failed to save form data'
       ) as SaveFormDataResult;
+    }
+  }
+
+  async generatePdfFromJson(
+    data: { attachment: string },
+    originalServer?: string
+  ): Promise<ICMDataResult> {
+    try {
+      if (!data?.attachment || typeof data.attachment !== 'string') {
+        return {
+          success: false,
+          status: 400,
+          error: 'attachment (base64) is required',
+        };
+      }
+
+      const response = await this.icmClient.generatePdfFromJson(
+        data,
+        originalServer
+      );
+      return this.handleResponse(
+        response,
+        'Error generating PDF from JSON. Please try again.'
+      );
+    } catch (error) {
+      return this.handleError(error, 'Failed to generate PDF from JSON');
+    }
+  }
+
+  async getInterface(originalServer?: string): Promise<ICMDataResult> {
+    try {
+      const resp = await this.icmClient.getInterface(originalServer);
+      return this.handleResponse(
+        resp,
+        'Error loading interface. Please try again.'
+      );
+    } catch (error) {
+      return this.handleError(error, 'Failed to load interface');
+    }
+  }
+
+  async saveForPortalAction(
+    data: SaveForPortalActionRequest,
+    originalServer?: string
+  ): Promise<ICMDataResult> {
+    try {
+      const { tokenId, savedForm } = data || ({} as SaveForPortalActionRequest);
+
+      if (!tokenId || !savedForm) {
+        return {
+          success: false,
+          status: 400,
+          error: 'Missing required fields: tokenId or savedForm',
+        };
+      }
+
+      const resp = await this.icmClient.saveForPortalAction(
+        data,
+        originalServer
+      );
+      return this.handleResponse(
+        resp,
+        'Error saving portal form. Please try again.'
+      );
+    } catch (error) {
+      return this.handleError(error, 'Failed to save portal form');
+    }
+  }
+
+  async loadPortalForm(
+    data: LoadPortalFormRequest,
+    originalServer?: string
+  ): Promise<LoadPortalFormResult> {
+    try {
+      if (!data || !data.id || typeof data.id !== 'string' || !data.id.trim()) {
+        return {
+          success: false,
+          error: 'Request data is required',
+          status: 400,
+        };
+      }
+
+      const response = await this.icmClient.loadPortalForm(
+        data,
+        originalServer
+      );
+      return this.handleResponse(
+        response,
+        'Error loading portal form. Please try again.'
+      );
+    } catch (error) {
+      return this.handleError(error, 'Failed to load portal form');
+    }
+  }
+
+  async submitForPortalAction(
+    data: SubmitPortalActionRequest,
+    originalServer?: string
+  ): Promise<ICMDataResult> {
+    try {
+      const { tokenId } = data || ({} as SubmitPortalActionRequest);
+
+      if (!tokenId) {
+        return {
+          success: false,
+          status: 400,
+          error: 'Missing required field: tokenId',
+        };
+      }
+
+      const resp = await this.icmClient.submitForPortalAction(
+        { tokenId },
+        originalServer
+      );
+      return this.handleResponse(
+        resp,
+        'Error submitting portal action. Please try again.'
+      );
+    } catch (error) {
+      return this.handleError(error, 'Failed to submit portal action');
+    }
+  }
+
+  async cancelForPortalAction(
+    data: CancelPortalActionRequest,
+    originalServer?: string
+  ): Promise<ICMDataResult> {
+    try {
+      const { tokenId } = data || ({} as CancelPortalActionRequest);
+
+      if (!tokenId) {
+        return {
+          success: false,
+          status: 400,
+          error: 'Missing required field: tokenId',
+        };
+      }
+
+      const resp = await this.icmClient.cancelForPortalAction(
+        { tokenId },
+        originalServer
+      );
+      return this.handleResponse(
+        resp,
+        'Error cancelling portal action. Please try again.'
+      );
+    } catch (error) {
+      return this.handleError(error, 'Failed to cancel portal action');
+    }
+  }
+  async loadPdfFromICMData(
+    data: LoadICMDataRequest,
+    token?: string
+  ): Promise<ICMDataResult> {
+    try {
+      const { username, originalServer, ...params } = data;
+
+      const payload: LoadICMDataPayload = {
+        ...params,
+      };
+
+      if (token) {
+        payload.token = token;
+      } else if (username?.trim()) {
+        payload.username = username;
+      } else {
+        L.warn('No authentication provided for ICM data load');
+        return {
+          success: false,
+          error:
+            'Authentication required: either token or username must be provided',
+          status: 401,
+        };
+      }
+
+      const response = await this.icmClient.loadPdfFromICMData(
+        payload,
+        originalServer
+      );
+      return this.handleResponse(
+        response,
+        'Error loading pdf . Please try again.'
+      );
+    } catch (error) {
+      return this.handleError(error, 'Failed to load ICM data for PDF');
     }
   }
 }
