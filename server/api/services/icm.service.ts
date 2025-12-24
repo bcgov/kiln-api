@@ -287,10 +287,10 @@ export class ICMService {
         originalServer,
       };
 
-      if (token) {
-        payload.token = token;
-      } else if (username?.trim()) {
+      if (username?.trim()) {
         payload.username = username;
+      } else if (token) {
+        payload.token = token;
       } else {
         L.warn('No authentication provided for ICM data save');
       }
