@@ -1,6 +1,20 @@
 import L from '../../common/logger';
 import { ICMClient } from './icm.client';
 
+interface BarcodeConfig {
+  formId: string;
+  barcodeData: string;
+}
+
+const BARCODE_CONFIG: BarcodeConfig[] = [
+  { formId: 'HR0080', barcodeData: 'HR0080, <AttachmentId>' },
+  { formId: 'HR3687E', barcodeData: 'HR3687E, <AttachmentId>' },
+  { formId: 'HR3049', barcodeData: 'HR3049, <AttachmentId>' },
+  { formId: 'HR0100', barcodeData: 'HR0100, <AttachmentId>' },
+  { formId: 'HR0080R', barcodeData: 'HR0080R, <AttachmentId>' },
+  { formId: 'HR3698E', barcodeData: 'HR3698E' },
+];
+
 interface SaveICMDataPayload {
   attachmentId: string;
   OfficeName: string;
@@ -209,7 +223,7 @@ export class ICMService {
         ? error
         : 'Unknown error occurred';
 
-    L.error({err: error}, errorMessage);
+    L.error({ err: error }, errorMessage);
 
     return {
       success: false,
@@ -231,7 +245,7 @@ export class ICMService {
     } else {
       const errorData = (await response.json().catch(() => ({}))) as any;
       const errorMessage = errorData?.error || defaultErrorMessage;
-      L.error({ err: errorMessage },'ICMClient API Error');
+      L.error({ err: errorMessage }, 'ICMClient API Error');
       return {
         success: false,
         error: errorMessage,
@@ -254,7 +268,7 @@ export class ICMService {
         data: pdfData,
       };
     } else {
-      L.error({ err: defaultErrorMessage}, 'PDF generation failed:');
+      L.error({ err: defaultErrorMessage }, 'PDF generation failed:');
       return {
         success: false,
         error: defaultErrorMessage,
@@ -274,8 +288,7 @@ export class ICMService {
       if (!attachmentId || !savedForm) {
         return {
           success: false,
-          error:
-            'Missing required fields: attachmentId or savedForm',
+          error: 'Missing required fields: attachmentId or savedForm',
           status: 400,
         };
       }
@@ -370,7 +383,10 @@ export class ICMService {
           status: 401,
         };
       }
-      const response = await this.icmClient.unlockICMData(payload, originalServer);    
+      const response = await this.icmClient.unlockICMData(
+        payload,
+        originalServer
+      );
       return this.handleResponse(
         response,
         'Error unlocking ICM form. Please try again.'
@@ -547,6 +563,7 @@ export class ICMService {
           form_definition: null,
           data: null,
           metadata: null,
+          barcodeValue: null,
         };
       }
 
@@ -554,11 +571,15 @@ export class ICMService {
       const savedData = rawFormData.data;
       const metadata = rawFormData.metadata;
 
+      const formId = formDefinition?.form_id;
+      const barcodeValue = this.generateBarcodeValue(formId, metadata);
+
       if (!savedData || !formDefinition) {
         return {
           form_definition: formDefinition,
           data: savedData,
           metadata: metadata,
+          barcodeValue,
         };
       }
 
@@ -572,11 +593,32 @@ export class ICMService {
         data: savedData,
         metadata: metadata,
         bound: true,
+        barcodeValue,
       };
     } catch (error) {
       L.error({ err: error }, 'Error binding form data');
       return this.handleError(error, 'Failed to bind form data');
     }
+  }
+
+  private generateBarcodeValue(
+    formId: string | undefined,
+    metadata: any
+  ): string | null {
+    if (!formId) return null;
+
+    const config = BARCODE_CONFIG.find((c) => c.formId === formId);
+    if (!config) return null;
+
+    let barcodeValue = config.barcodeData;
+
+    if (barcodeValue.includes('<AttachmentId>')) {
+      const attachmentId =
+        metadata?.attachmentId || metadata?.AttachmentId || '';
+      barcodeValue = barcodeValue.replace('<AttachmentId>', attachmentId);
+    }
+
+    return barcodeValue;
   }
 
   private applyDataBinding(formDefinition: any, data: any): any {
@@ -883,7 +925,10 @@ export class ICMService {
       }
 
       if (action === 'save_and_close') {
-        const unlockResult = await this.unlockICMData({ ...sessionParams, originalServer }, token);
+        const unlockResult = await this.unlockICMData(
+          { ...sessionParams, originalServer },
+          token
+        );
         if (!unlockResult.success) {
           L.warn('Save succeeded but unlock failed:', unlockResult.error);
         }
