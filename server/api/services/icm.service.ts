@@ -209,7 +209,7 @@ export class ICMService {
         ? error
         : 'Unknown error occurred';
 
-    L.error({err: error}, errorMessage);
+    L.error({ err: error }, errorMessage);
 
     return {
       success: false,
@@ -231,7 +231,7 @@ export class ICMService {
     } else {
       const errorData = (await response.json().catch(() => ({}))) as any;
       const errorMessage = errorData?.error || defaultErrorMessage;
-      L.error({ err: errorMessage },'ICMClient API Error');
+      L.error({ err: errorMessage }, 'ICMClient API Error');
       return {
         success: false,
         error: errorMessage,
@@ -254,7 +254,7 @@ export class ICMService {
         data: pdfData,
       };
     } else {
-      L.error({ err: defaultErrorMessage}, 'PDF generation failed:');
+      L.error({ err: defaultErrorMessage }, 'PDF generation failed:');
       return {
         success: false,
         error: defaultErrorMessage,
@@ -274,8 +274,7 @@ export class ICMService {
       if (!attachmentId || !savedForm) {
         return {
           success: false,
-          error:
-            'Missing required fields: attachmentId or savedForm',
+          error: 'Missing required fields: attachmentId or savedForm',
           status: 400,
         };
       }
@@ -370,7 +369,10 @@ export class ICMService {
           status: 401,
         };
       }
-      const response = await this.icmClient.unlockICMData(payload, originalServer);    
+      const response = await this.icmClient.unlockICMData(
+        payload,
+        originalServer
+      );
       return this.handleResponse(
         response,
         'Error unlocking ICM form. Please try again.'
@@ -883,7 +885,10 @@ export class ICMService {
       }
 
       if (action === 'save_and_close') {
-        const unlockResult = await this.unlockICMData({ ...sessionParams, originalServer }, token);
+        const unlockResult = await this.unlockICMData(
+          { ...sessionParams, originalServer },
+          token
+        );
         if (!unlockResult.success) {
           L.warn('Save succeeded but unlock failed:', unlockResult.error);
         }
