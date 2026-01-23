@@ -1,10 +1,14 @@
+import { FormDefinition, formDefinitionSchema } from '../../schema/form';
 import L from '../../common/logger';
 import { ICMClient } from './icm.client';
+import z from 'zod';
+import buildForICM from './buildForICM';
+import { FieldValue, GroupValue } from '../../schema/formElements';
 
 interface SaveICMDataPayload {
   attachmentId: string;
   OfficeName: string;
-  savedForm: any;
+  savedForm: string; // xml
   token?: string;
   username?: string;
   originalServer?: string;
@@ -14,7 +18,7 @@ interface SaveICMDataRequest {
   attachmentId: string;
   OfficeName: string;
   username?: string;
-  savedForm: any;
+  savedForm: SavedData;
   originalServer?: string;
 }
 
@@ -145,8 +149,8 @@ interface SubmitButtonActionResult {
 
 interface SaveFormDataRequest {
   action: 'save' | 'save_and_close';
-  formState: Record<string, any>;
-  groupState?: Record<string, any[]>;
+  formState: Record<string, FieldValue>;
+  groupState?: Record<string, GroupValue>;
   formDefinition: any;
   metadata?: Record<string, any>;
   items: any[];
@@ -172,8 +176,8 @@ interface Item {
 }
 
 interface SavedData {
-  data: Record<string, any>;
-  form_definition: any;
+  data: Record<string, FieldValue | GroupValue>;
+  form_definition: FormDefinition;
   metadata: Record<string, any>;
 }
 
@@ -213,7 +217,7 @@ export class ICMService {
 
     return {
       success: false,
-      error: `${errorMessage}: ${errorDetail}`,
+      error: `${errorMessage}:\n${errorDetail}`,
       status: 500,
     };
   }
@@ -279,10 +283,17 @@ export class ICMService {
         };
       }
 
+      const xml = await buildForICM(savedForm.form_definition, savedForm.data);
+      // console.log(xml);
+      throw new Error(xml);
+      return {
+        success: true,
+        data: xml,
+      };
       const payload: SaveICMDataPayload = {
         attachmentId,
         OfficeName,
-        savedForm,
+        savedForm: xml,
         originalServer,
       };
 
@@ -702,10 +713,10 @@ export class ICMService {
   }
 
   private createSavedData(ctx: {
-    formState: Record<string, any>;
-    groupState?: Record<string, any[]>;
+    formState: Record<string, FieldValue>;
+    groupState?: Record<string, GroupValue>;
     items: Item[];
-    formDefinition: any;
+    formDefinition: unknown;
     metadata?: Record<string, any>;
   }): SavedData {
     const {
@@ -715,7 +726,17 @@ export class ICMService {
       formDefinition,
       metadata = {},
     } = ctx;
-    const saveFieldData: Record<string, any> = {};
+
+    const result = formDefinitionSchema.safeParse(formDefinition);
+    if (!result.success) {
+      throw new Error(
+        'Invalid form definition: ' + z.prettifyError(result.error)
+      );
+    }
+
+    const formDef = result.data;
+
+    const saveFieldData: Record<string, FieldValue | GroupValue> = {};
 
     const processItems = (list: Item[], state: Record<string, any>) => {
       for (const item of list) {
@@ -817,21 +838,21 @@ export class ICMService {
       updated_date: new Date().toISOString(),
     };
 
-    const template: any = {
-      ...formDefinition,
-      id: formDefinition.id ?? '',
-      version: formDefinition.version ?? '',
-      status: formDefinition.status ?? '',
-      data: formDefinition.data ?? {},
-      created_by: formDefinition.created_by ?? '',
-      created_date: formDefinition.created_date ?? '',
-      updated_by: formDefinition.updated_by ?? '',
-      updated_date: formDefinition.updated_date ?? '',
+    const template: FormDefinition = {
+      ...formDef,
+      id: formDef.id ?? '',
+      version: formDef.version ?? '',
+      status: formDef.status ?? '',
+      data: formDef.data ?? {},
+      // created_by: formDef.created_by ?? '',
+      // created_date: formDef.created_date ?? '',
+      // updated_by: formDef.updated_by ?? '',
+      // updated_date: formDef.updated_date ?? '',
     };
 
     return {
       data: saveFieldData,
-      form_definition: template,
+      form_definition: formDef,
       metadata: updatedMetadata,
     };
   }
@@ -874,7 +895,7 @@ export class ICMService {
           attachmentId: sessionParams.attachmentId,
           OfficeName: sessionParams.OfficeName,
           username: sessionParams.username,
-          savedForm: JSON.stringify(savedData),
+          savedForm: savedData,
         },
         token,
         originalServer
