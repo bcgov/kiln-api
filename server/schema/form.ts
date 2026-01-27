@@ -3,6 +3,8 @@ import {
   FieldValue,
   fieldValueSchema,
   formElementUnionSchema,
+  GroupValue,
+  groupValueSchema,
 } from './formElements';
 
 const dataSourceSchema = z.object({
@@ -101,21 +103,41 @@ export const formDefinitionSchema = z.object({
 });
 export type FormDefinition = z.infer<typeof formDefinitionSchema>;
 
-interface AddFields {
-  [key: string]: FieldValue | AddFields;
+export interface SaveData {
+  [x: string]: SaveData | FieldValue | GroupValue;
 }
 
-const addFieldSchema: z.ZodType<AddFields> = z.lazy(() =>
-  z.record(z.string(), fieldValueSchema.or(addFieldSchema))
+const addFieldSchema: z.ZodType<SaveData> = z.lazy(() =>
+  z.record(z.string(), fieldValueSchema.or(groupValueSchema).or(addFieldSchema))
+);
+
+interface WrapperTags {
+  [key: string]: number | WrapperTags;
+}
+
+const wrapperTagsSchema: z.ZodType<WrapperTags> = z.lazy(() =>
+  z.record(z.string(), z.number().or(wrapperTagsSchema))
+);
+
+const overrideFieldsSchema = z.array(
+  z.object({
+    uuid: z.string(),
+    values: z.array(
+      z.object({
+        value: fieldValueSchema,
+        override: fieldValueSchema,
+      })
+    ),
+  })
 );
 
 export const formExceptionSchema = z.object({
   rootName: z.string(),
   subRoots: z.array(z.string()),
-  wrapperTags: z.array(z.any()),
-  allowCheckboxWithNoChange: z.array(z.string()),
+  wrapperTags: z.array(wrapperTagsSchema),
+  // allowCheckboxWithNoChange: z.array(z.string()),
   omitFields: z.array(z.string()),
   addFields: addFieldSchema,
-  overrideFields: z.array(z.any()),
+  overrideFields: overrideFieldsSchema.optional(),
 });
-export type formExceptions = z.infer<typeof formExceptionSchema>;
+export type FormExceptions = z.infer<typeof formExceptionSchema>;
