@@ -744,7 +744,8 @@ export class ICMService {
           const isRepeatable = item.attributes?.isRepeatable === true;
 
           if (isRepeatable) {
-            const explicitRows = groupState[item.uuid];
+            const containerKey = (item as any)._containerInstanceKey ?? item.uuid;
+            const explicitRows = (groupState as any)[containerKey] ?? groupState[item.uuid];
             if (Array.isArray(explicitRows) && explicitRows.length > 0) {
               const rows = explicitRows
                 .map((rowState) => {
@@ -767,6 +768,14 @@ export class ICMService {
                       ];
                     }
                   }
+                  // Preserve nested repeater arrays stored on the row object 
+                  if (rowState && typeof rowState === 'object' && !Array.isArray(rowState)) {
+                    for (const [k, v] of Object.entries(rowState as Record<string, any>)) {
+                      if (Array.isArray(v) && row[k] === undefined) {
+                        row[k] = v;
+                      }
+                    }
+                  }
                   return Object.keys(row).length > 0 ? row : null;
                 })
                 .filter(Boolean) as Record<string, any>[];
@@ -780,7 +789,7 @@ export class ICMService {
             const childUuids = new Set(
               (item.children || []).map((c) => c.uuid)
             );
-            const prefix = `${item.uuid}-`;
+            const prefix = `${containerKey}-`;
             const byGroupId = new Map<string, Record<string, any>>();
 
             for (const key of Object.keys(state)) {
