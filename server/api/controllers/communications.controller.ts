@@ -288,7 +288,47 @@ export class CommunicationsController {
       res.status(500).json({ error: errorMessage });
     }
   }
+  async compareFormData(req: AuthenticatedRequest, res: Response): Promise<void> {
+    const originalServer = req.headers['x-original-server'] as string;
+    try {
+      const {
+        action,
+        formState,
+        groupState,
+        formDefinition,
+        metadata,
+        items,
+        sessionParams,
+      } = req.body;
 
+      const result = await ICMService.compareFormData(
+        {
+          action,
+          formState,
+          groupState,
+          formDefinition,
+          metadata,
+          items,
+          sessionParams,
+        },
+        originalServer
+      );
+
+      if (result.success) {
+        res.status(200).json(result.data);
+      } else {
+        res.status(result.status || 500).json({ error: result.error });
+      }
+    } catch (error) {
+      let errorMessage = 'Internal server error';
+      if (error instanceof Error && error.message) {
+        errorMessage = error.message;
+      }
+      res.status(500).json({
+        error: errorMessage,
+      });
+    }
+  }
   async saveFormData(req: AuthenticatedRequest, res: Response): Promise<void> {
     const originalServer = req.headers['x-original-server'] as string;
 

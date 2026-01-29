@@ -267,6 +267,43 @@ export class ICMService {
     }
   }
 
+  async compareICMData(
+    data: {
+      savedForm: SavedData;
+      originalServer?: string | undefined;
+    },
+    originalServer?: string
+  ) {
+    try {
+      const { savedForm } = data;
+
+      if (!savedForm) {
+        return {
+          success: false,
+          error: 'Missing required fields: savedForm',
+          status: 400,
+        };
+      }
+
+      const xml = await buildForICM(savedForm.form_definition, savedForm.data);
+
+      const comparePayload = {
+        savedFormJson: JSON.stringify(savedForm),
+        savedFormXml: xml,
+      };
+      const response = await this.icmClient.compareICMData(
+        comparePayload,
+        originalServer
+      );
+      return this.handleResponse(
+        response,
+        'Error saving form. Please try again.'
+      );
+    } catch (error) {
+      return this.handleError(error, 'Failed to save ICM data');
+    }
+  }
+
   async saveICMData(
     data: SaveICMDataRequest,
     token?: string,
@@ -284,12 +321,7 @@ export class ICMService {
       }
 
       const xml = await buildForICM(savedForm.form_definition, savedForm.data);
-      // console.log(xml);
-      throw new Error(xml);
-      return {
-        success: true,
-        data: xml,
-      };
+
       const payload: SaveICMDataPayload = {
         attachmentId,
         OfficeName,
@@ -872,6 +904,51 @@ export class ICMService {
       form_definition: formDef,
       metadata: updatedMetadata,
     };
+  }
+
+  async compareFormData(data: SaveFormDataRequest, originalServer?: string) {
+    try {
+      const { action, formState, groupState, formDefinition, metadata, items } =
+        data;
+
+      if (!action || !formState || !formDefinition || !items) {
+        return {
+          success: false,
+          error:
+            'Missing required fields: action, formState, formDefinition, or items',
+          status: 400,
+        };
+      }
+
+      const savedData = this.createSavedData({
+        formState,
+        groupState,
+        items,
+        formDefinition,
+        metadata,
+      });
+
+      const compareResult = await this.compareICMData(
+        {
+          savedForm: savedData,
+        },
+        originalServer
+      );
+
+      if (!compareResult.success) {
+        return compareResult;
+      }
+
+      return {
+        success: true,
+        data: compareResult,
+      };
+    } catch (error) {
+      return this.handleError(
+        error,
+        'Failed to save form data'
+      );
+    }
   }
 
   async saveFormData(
