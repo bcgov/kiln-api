@@ -8,7 +8,8 @@ import { FieldValue, GroupValue } from '../../schema/formElements';
 interface SaveICMDataPayload {
   attachmentId: string;
   OfficeName: string;
-  savedForm: string; // xml
+  savedFormJson: string; 
+  savedFormXml: string;
   token?: string;
   username?: string;
   originalServer?: string;
@@ -285,7 +286,7 @@ export class ICMService {
         };
       }
 
-      const xml = await buildForICM(savedForm.form_definition, savedForm.data);
+      const xml = await buildForICM(savedForm.form_definition, savedForm.data, true);
 
       const comparePayload = {
         savedFormJson: JSON.stringify(savedForm),
@@ -325,7 +326,8 @@ export class ICMService {
       const payload: SaveICMDataPayload = {
         attachmentId,
         OfficeName,
-        savedForm: xml,
+        savedFormJson: JSON.stringify(savedForm),
+        savedFormXml: xml,
         originalServer,
       };
 
@@ -901,7 +903,7 @@ export class ICMService {
 
     return {
       data: saveFieldData,
-      form_definition: formDef,
+      form_definition: template,
       metadata: updatedMetadata,
     };
   }

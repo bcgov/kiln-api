@@ -21,7 +21,8 @@ import { create } from 'xmlbuilder2';
  */
 export default async function buildForICM(
   formDefinition: FormDefinition,
-  saveData: SaveData
+  saveData: SaveData,
+  prettyPrint = false
 ): Promise<string> {
   // fetch form exceptions from endpoint
   const exceptionsDictionaryResult = await getExceptionsDictionary(
@@ -70,7 +71,7 @@ export default async function buildForICM(
     { version: '1.0', keepNullNodes: true },
     unflattenSaveData(exceptedSaveData)
   );
-  return xml.end({ prettyPrint: true });
+  return xml.end({ prettyPrint });
 }
 
 async function getExceptionsDictionary(formId: string) {
