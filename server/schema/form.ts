@@ -81,26 +81,61 @@ const pdfTemplateSchema = z.object({
 });
 
 /**
- * Form Definition Schema - matches the output of FormVersionJsonService.generateJson()
+ * Form Definition Schema. Coerces differnces in formVersion to match form_definition
  */
-export const formDefinitionSchema = z.object({
-  name: z.string().optional(),
-  form_id: z.string(),
-  id: z.string().or(z.number()),
-  version: z.string().or(z.number()),
-  version_date: z.string().optional(),
-  version_date_format: z.string().optional(),
-  status: z.string(),
-  data: formVersionDataSchema.or(z.tuple([])),
-  form_data: formVersionDataSchema.optional(),
-  ministry_id: z.string().or(z.number()).nullable().optional(),
-  dataSources: z.array(dataSourceSchema),
-  interface: z.array(formInterfaceSchema),
-  styles: z.array(styleAssetSchema),
-  scripts: z.array(scriptAssetSchema),
-  elements: z.array(formElementUnionSchema),
-  pdfTemplate: pdfTemplateSchema.optional(),
-});
+export const formDefinitionSchema = z
+  .object({
+    name: z.string().optional(),
+    form_id: z.string(),
+    id: z.string().or(z.number()).optional(),
+    version: z.string().or(z.number()).optional(),
+    version_date: z.string().optional(),
+    version_date_format: z.string().optional(),
+    status: z.string().optional(),
+    data: formVersionDataSchema.or(z.tuple([])),
+    ministry_id: z.string().or(z.number()).nullable().optional(),
+    dataSources: z.array(dataSourceSchema),
+    interface: z.array(formInterfaceSchema),
+    styles: z.array(styleAssetSchema),
+    scripts: z.array(scriptAssetSchema),
+    elements: z.array(formElementUnionSchema),
+    pdfTemplate: pdfTemplateSchema.optional(),
+    form_data: formVersionDataSchema.optional(), // form_definition
+    created_by: z.string().optional(), // form_definition
+    created_date: z.string().optional(), // form_definition
+    updated_by: z.string().optional(), // form_definition
+    updated_date: z.string().optional(), // form_definition
+  })
+  .transform(
+    ({
+      data,
+      form_data,
+      id,
+      version,
+      status,
+      created_by,
+      created_date,
+      updated_by,
+      updated_date,
+      ...form
+    }) => {
+      // normalize data into form_data
+      // fill in and stringify id/version/status (still needed?)
+      // fill in top-level created/updated fields
+      return {
+        ...form,
+        data: [],
+        form_data: Array.isArray(data) ? form_data : data,
+        id: id?.toString() ?? '',
+        version: version?.toString() ?? '',
+        status: status ?? '',
+        created_by: created_by ?? '',
+        created_date: created_date ?? '',
+        updated_by: updated_by ?? '',
+        updated_date: updated_date ?? '',
+      };
+    }
+  );
 export type FormDefinition = z.infer<typeof formDefinitionSchema>;
 
 export interface SaveData {

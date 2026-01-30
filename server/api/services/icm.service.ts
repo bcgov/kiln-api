@@ -8,7 +8,7 @@ import { FieldValue, GroupValue } from '../../schema/formElements';
 interface SaveICMDataPayload {
   attachmentId: string;
   OfficeName: string;
-  savedFormJson: string; 
+  savedFormJson: string;
   savedFormXml: string;
   token?: string;
   username?: string;
@@ -286,7 +286,11 @@ export class ICMService {
         };
       }
 
-      const xml = await buildForICM(savedForm.form_definition, savedForm.data, true);
+      const xml = await buildForICM(
+        savedForm.form_definition,
+        savedForm.data,
+        true
+      );
 
       const comparePayload = {
         savedFormJson: JSON.stringify(savedForm),
@@ -889,21 +893,9 @@ export class ICMService {
       updated_date: new Date().toISOString(),
     };
 
-    const template: FormDefinition = {
-      ...formDef,
-      id: formDef.id ?? '',
-      version: formDef.version ?? '',
-      status: formDef.status ?? '',
-      data: formDef.data ?? {},
-      // created_by: formDef.created_by ?? '',
-      // created_date: formDef.created_date ?? '',
-      // updated_by: formDef.updated_by ?? '',
-      // updated_date: formDef.updated_date ?? '',
-    };
-
     return {
       data: saveFieldData,
-      form_definition: template,
+      form_definition: formDef,
       metadata: updatedMetadata,
     };
   }
@@ -946,10 +938,7 @@ export class ICMService {
         data: compareResult,
       };
     } catch (error) {
-      return this.handleError(
-        error,
-        'Failed to save form data'
-      );
+      return this.handleError(error, 'Failed to save form data');
     }
   }
 
