@@ -1,18 +1,20 @@
 import * as z from 'zod';
 
-export const ElementTypes = [
-  'text-input',
-  'textarea-input',
-  'number-input',
-  'date-select-input',
-  'select-input',
-  'radio-input',
-  'checkbox-input',
-  'button-input',
-  'text-info',
-  'html',
-  'container',
-] as const;
+const ElementTypeMap = {
+  TextInput: 'text-input',
+  TextAreaInput: 'textarea-input',
+  NumberInput: 'number-input',
+  DateSelectInput: 'date-select-input',
+  SelectInput: 'select-input',
+  RadioInput: 'radio-input',
+  CheckboxInput: 'checkbox-input',
+  ButtonInput: 'button-input',
+  TextInfo: 'text-info',
+  Html: 'html',
+  Container: 'container',
+} as const;
+
+export type ElementType = (typeof ElementTypeMap)[keyof typeof ElementTypeMap];
 
 export const fieldValueSchema = z.union([
   z.string(),
@@ -75,7 +77,7 @@ const formElementBaseSchema = z.object({
  * For single-line text input fields
  */
 export const textInputElementSchema = formElementBaseSchema.extend({
-  type: z.literal('text-input'),
+  type: z.literal(ElementTypeMap.TextInput),
   attributes: z.object({
     placeholder: z.string().optional(),
     labelText: z.string().optional(),
@@ -93,7 +95,7 @@ export const textInputElementSchema = formElementBaseSchema.extend({
  * For multi-line text input fields
  */
 export const textareaInputElementSchema = formElementBaseSchema.extend({
-  type: z.literal('textarea-input'),
+  type: z.literal(ElementTypeMap.TextAreaInput),
   attributes: z.object({
     placeholder: z.string().optional(),
     labelText: z.string().optional(),
@@ -111,7 +113,7 @@ export const textareaInputElementSchema = formElementBaseSchema.extend({
  * For numeric input fields
  */
 export const numberInputElementSchema = formElementBaseSchema.extend({
-  type: z.literal('number-input'),
+  type: z.literal(ElementTypeMap.NumberInput),
   attributes: z.object({
     placeholder: z.string().optional(),
     labelText: z.string().optional(),
@@ -130,7 +132,7 @@ export const numberInputElementSchema = formElementBaseSchema.extend({
  * For date picker fields
  */
 export const dateSelectInputElementSchema = formElementBaseSchema.extend({
-  type: z.literal('date-select-input'),
+  type: z.literal(ElementTypeMap.DateSelectInput),
   attributes: z.object({
     placeholder: z.string().optional(),
     labelText: z.string().optional(),
@@ -147,7 +149,7 @@ export const dateSelectInputElementSchema = formElementBaseSchema.extend({
  * For dropdown/select fields
  */
 export const selectInputElementSchema = formElementBaseSchema.extend({
-  type: z.literal('select-input'),
+  type: z.literal(ElementTypeMap.SelectInput),
   attributes: z.object({
     labelText: z.string().optional(),
     hideLabel: z.boolean().optional(),
@@ -162,7 +164,7 @@ export const selectInputElementSchema = formElementBaseSchema.extend({
  * For radio button groups
  */
 export const radioInputElementSchema = formElementBaseSchema.extend({
-  type: z.literal('radio-input'),
+  type: z.literal(ElementTypeMap.RadioInput),
   attributes: z.object({
     labelText: z.string().optional(),
     hideLabel: z.boolean().optional(),
@@ -179,7 +181,7 @@ export const radioInputElementSchema = formElementBaseSchema.extend({
  * For single checkbox fields
  */
 export const checkboxInputElementSchema = formElementBaseSchema.extend({
-  type: z.literal('checkbox-input'),
+  type: z.literal(ElementTypeMap.CheckboxInput),
   attributes: z.object({
     labelText: z.string().optional(),
     hideLabel: z.boolean().optional(),
@@ -193,7 +195,7 @@ export const checkboxInputElementSchema = formElementBaseSchema.extend({
  * For action buttons
  */
 export const buttonInputElementSchema = formElementBaseSchema.extend({
-  type: z.literal('button-input'),
+  type: z.literal(ElementTypeMap.ButtonInput),
   attributes: z.object({
     text: z.string().optional(),
     kind: z
@@ -208,7 +210,7 @@ export const buttonInputElementSchema = formElementBaseSchema.extend({
  * For static text/HTML display
  */
 export const textInfoElementSchema = formElementBaseSchema.extend({
-  type: z.literal('text-info'),
+  type: z.literal(ElementTypeMap.TextInfo),
   attributes: z.object({
     content: z.string().optional(),
   }),
@@ -219,7 +221,7 @@ export const textInfoElementSchema = formElementBaseSchema.extend({
  * For custom HTML content
  */
 export const htmlElementSchema = formElementBaseSchema.extend({
-  type: z.literal('html'),
+  type: z.literal(ElementTypeMap.Html),
   attributes: z.object({
     htmlContent: z.string().optional(),
   }),
@@ -230,7 +232,7 @@ export const htmlElementSchema = formElementBaseSchema.extend({
  * For grouping elements (sections, fieldsets, tabs, repeating containers)
  */
 export const containerElementSchema = formElementBaseSchema.extend({
-  type: z.literal('container'),
+  type: z.literal(ElementTypeMap.Container),
   attributes: z.object({
     containerType: z
       .enum(['section', 'fieldset', 'tab', 'repeating'])
@@ -241,13 +243,30 @@ export const containerElementSchema = formElementBaseSchema.extend({
     enableVarSub: z.boolean().optional(),
     level: z.number().optional(),
   }),
-  get children() {
+  get children(): z.ZodOptional<
+    z.ZodArray<
+      z.ZodDiscriminatedUnion<
+        [
+          typeof textInputElementSchema,
+          typeof textareaInputElementSchema,
+          typeof numberInputElementSchema,
+          typeof dateSelectInputElementSchema,
+          typeof selectInputElementSchema,
+          typeof radioInputElementSchema,
+          typeof checkboxInputElementSchema,
+          typeof buttonInputElementSchema,
+          typeof textInfoElementSchema,
+          typeof htmlElementSchema,
+          typeof containerElementSchema
+        ]
+      >
+    >
+  > {
     return z.array(formElementUnionSchema).optional();
-    // return z.any().optional();
   },
 });
 
-export const formElementUnionSchema = z.union([
+export const formElementUnionSchema = z.discriminatedUnion('type', [
   textInputElementSchema,
   textareaInputElementSchema,
   numberInputElementSchema,

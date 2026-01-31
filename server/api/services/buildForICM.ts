@@ -1,13 +1,14 @@
 import z from 'zod';
 import axios from 'axios';
 import {
-  SaveData,
+  SaveFieldData,
   FormDefinition,
   FormExceptions,
   formExceptionSchema,
 } from '../../schema/form';
-import { FieldValue, GroupValue } from '../../schema/formElements';
+import { ElementType, FieldValue, GroupValue } from '../../schema/formElements';
 import { create } from 'xmlbuilder2';
+import L from '../../common/logger';
 
 // truncate ids
 // remove elements if in omitFields
@@ -21,7 +22,7 @@ import { create } from 'xmlbuilder2';
  */
 export default async function buildForICM(
   formDefinition: FormDefinition,
-  saveData: SaveData,
+  saveData: SaveFieldData,
   prettyPrint = false
 ): Promise<string> {
   // fetch form exceptions from endpoint
@@ -51,7 +52,10 @@ export default async function buildForICM(
     exceptionsDictionary.rootName || 'root',
     ...exceptionsDictionary.subRoots,
   ];
-  const flatSaveData = flattenSaveData(saveData, outerWrappers);
+
+  const dataTypeMap = getElementTypes(formDefinition.elements);
+
+  const flatSaveData = flattenSaveData(saveData, outerWrappers, dataTypeMap);
 
   const flatAddFields = flattenSaveData(exceptionsDictionary.addFields);
   const flatWrapperTags = exceptionsDictionary.wrapperTags.flatMap((tag) =>
@@ -78,7 +82,8 @@ async function getExceptionsDictionary(formId: string) {
   const formExceptionsEndpoint =
     process.env.FORM_EXCEPTION_DICTIONARY_ENDPOINT_URL;
   if (!formExceptionsEndpoint) {
-    throw new Error('FORM_EXCEPTION_DICTIONARY_ENDPOINT_URL is not defined');
+    L.warn('FORM_EXCEPTION_DICTIONARY_ENDPOINT_URL is not defined');
+    return false;
   }
   try {
     const response = await axios.get(
@@ -86,14 +91,31 @@ async function getExceptionsDictionary(formId: string) {
     );
     return formExceptionSchema.safeParse(response.data);
   } catch (error) {
-    console.log(error);
+    L.warn(
+      { levels: ['debug'] },
+      `Exception dictionary for form ${formId} not found: ${error.code}`
+    );
     return false;
   }
 }
 
+function getElementTypes(
+  elements: FormDefinition['elements']
+): Record<string, ElementType> {
+  let records: Record<string, ElementType> = {};
+  elements.forEach((e) => {
+    if (e.type === 'container' && e.children) {
+      records = { ...records, ...getElementTypes(e.children) };
+    } else {
+      records[e.uuid] = e.type;
+    }
+  });
+  return records;
+}
+
 function isNestedSaveData(
-  fieldValue: FieldValue | GroupValue | SaveData
-): fieldValue is SaveData {
+  fieldValue: FieldValue | GroupValue | SaveFieldData
+): fieldValue is SaveFieldData {
   return (
     typeof fieldValue === 'object' &&
     fieldValue !== null &&
@@ -116,21 +138,28 @@ function isGroupValue(
 type FlatSaveData = {
   uuid: string;
   parents: string[];
-  // type: FlatSaveItemType;
+  type?: ElementType;
   value: FieldValue;
-  // children?: string[];
 }[];
 function flattenSaveData(
-  saveData: SaveData,
-  parents: string[] = []
+  saveData: SaveFieldData,
+  parents: string[] = [],
+  dataTypeMap?: Record<string, ElementType>
 ): FlatSaveData {
   return Object.entries(saveData).reduce<FlatSaveData>((acc, [key, value]) => {
     if (isNestedSaveData(value)) {
-      return [...acc, ...flattenSaveData(value, [...parents, key])];
+      return [
+        ...acc,
+        ...flattenSaveData(value, [...parents, key], dataTypeMap),
+      ];
     }
     if (isGroupValue(value)) {
       const groupItems = value.flatMap((v, i) =>
-        flattenSaveData(v, [...parents, `${key}-List`, `${key}@${i}`])
+        flattenSaveData(
+          v,
+          [...parents, `${key}-List`, `${key}@${i}`],
+          dataTypeMap
+        )
       );
       return [...acc, ...groupItems];
     }
@@ -138,6 +167,7 @@ function flattenSaveData(
       uuid: key,
       parents,
       value,
+      type: dataTypeMap ? dataTypeMap[key] : undefined,
     };
     return [...acc, item];
   }, []);
@@ -157,30 +187,35 @@ function applyOmitFields(omitFields: FormExceptions['omitFields']) {
     );
 }
 
-// TODO: check if wrappers targetting a repeater should go outside the -List or the items (currently latter)
 function applyWrapperTags(wrapperTags: FlatSaveData) {
   return (saveData: FlatSaveData) => {
     let draftSaveData = saveData;
     for (const wItem of wrapperTags) {
+      // field value of wrapperTags is a depth override
+      // if set, use only the first value+1 wrapping elements
+      const wrappers =
+        typeof wItem.value === 'number'
+          ? wItem.parents.slice(0, wItem.value + 1)
+          : wItem.parents;
       draftSaveData = draftSaveData.map((dItem) => {
         // if item is directly found in wrapperTags, update parents
         if (dItem.uuid === wItem.uuid) {
           return {
             ...dItem,
-            parents: [...dItem.parents, ...wItem.parents],
+            parents: [...dItem.parents, ...wrappers],
           };
         }
         // if item has wItem as a parent, splice the wrapperTags before it
         const pId = dItem.parents.findIndex(
-          (pId) => pId.split('@')[0] === wItem.uuid
+          (pId) => pId.split('-List')[0] === wItem.uuid
         );
         if (pId !== -1) {
-          // parents: ['a', __, 'pId', 'b', 'c']
+          // parents: ['a', ...wrappers, 'pId', 'b', 'c']
           return {
             ...dItem,
             parents: [
               ...dItem.parents.slice(0, pId),
-              ...wItem.parents,
+              ...wrappers,
               ...dItem.parents.slice(pId),
             ],
           };
@@ -199,7 +234,7 @@ function applyOverrideFields(overrideFields: FormExceptions['overrideFields']) {
     saveData.map((item) => {
       const oItem = overrideFields?.find((i) => i.uuid === item.uuid);
       if (!oItem) {
-        return item;
+        return defaultOverrides(item);
       }
       const oValue = oItem.values.find((v) => v.value === item.value)?.override;
       return {
@@ -207,6 +242,29 @@ function applyOverrideFields(overrideFields: FormExceptions['overrideFields']) {
         value: oValue ?? item.value,
       };
     });
+}
+
+function defaultOverrides(item: FlatSaveData[number]) {
+  // replace checkbox true/false values with Yes/No
+  if (item.type === 'checkbox-input') {
+    return {
+      ...item,
+      value: !!item.value ? 'Yes' : 'No',
+    };
+  }
+  // output dates as MM/DD/YYYY
+  // DOES NOT work properly with all possible formats in klamm. ex: d/m/y
+  if (item.type === 'date-select-input' && typeof item.value === 'string') {
+    const date = new Date(item.value);
+    if (Number.isNaN(date.valueOf())) {
+      return item;
+    }
+    return {
+      ...item,
+      value: new Intl.DateTimeFormat('en-US').format(date),
+    };
+  }
+  return item;
 }
 
 function applyAddFields(addFields: FlatSaveData, wrappers: string[]) {
@@ -236,11 +294,12 @@ function applyTruncateTags() {
     }));
 }
 
-function unflattenSaveData(flatData: FlatSaveData): SaveData {
-  const result: Record<string, FieldValue | GroupValue | SaveData> = {};
+function unflattenSaveData(flatData: FlatSaveData): SaveFieldData {
+  const result: Record<string, FieldValue | GroupValue | SaveFieldData> = {};
 
   for (const { uuid, parents, value } of flatData) {
-    let current: Record<string, FieldValue | GroupValue | SaveData> = result;
+    let current: Record<string, FieldValue | GroupValue | SaveFieldData> =
+      result;
 
     for (const parent of parents) {
       // Check if this parent has an @index pattern (e.g., "container-1-...@0")
@@ -258,12 +317,12 @@ function unflattenSaveData(flatData: FlatSaveData): SaveData {
         }
 
         if (!current[parentId][index]) {
-          (current[parentId] as SaveData[])[index] = {};
+          (current[parentId] as SaveFieldData[])[index] = {};
         }
 
-        current = (current[parentId] as SaveData[])[index] as Record<
+        current = (current[parentId] as SaveFieldData[])[index] as Record<
           string,
-          FieldValue | GroupValue | SaveData
+          FieldValue | GroupValue | SaveFieldData
         >;
       } else {
         // Regular parent key without @index pattern
@@ -272,7 +331,7 @@ function unflattenSaveData(flatData: FlatSaveData): SaveData {
         }
         current = current[parent] as Record<
           string,
-          FieldValue | GroupValue | SaveData
+          FieldValue | GroupValue | SaveFieldData
         >;
       }
     }

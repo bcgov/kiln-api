@@ -138,20 +138,20 @@ export const formDefinitionSchema = z
   );
 export type FormDefinition = z.infer<typeof formDefinitionSchema>;
 
-export interface SaveData {
-  [x: string]: SaveData | FieldValue | GroupValue;
+export interface SaveFieldData {
+  [x: string]: SaveFieldData | FieldValue | GroupValue;
 }
 
-const addFieldSchema: z.ZodType<SaveData> = z.lazy(() =>
+const addFieldSchema: z.ZodType<SaveFieldData> = z.lazy(() =>
   z.record(z.string(), fieldValueSchema.or(groupValueSchema).or(addFieldSchema))
 );
 
 interface WrapperTags {
-  [key: string]: number | WrapperTags;
+  [key: string]: number | null | WrapperTags;
 }
 
 const wrapperTagsSchema: z.ZodType<WrapperTags> = z.lazy(() =>
-  z.record(z.string(), z.number().or(wrapperTagsSchema))
+  z.record(z.string(), z.number().or(z.null()).or(wrapperTagsSchema))
 );
 
 const overrideFieldsSchema = z.array(
