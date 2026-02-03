@@ -13,7 +13,7 @@ const dataSourceSchema = z.object({
   endpoint: z.string(),
   description: z.string().nullable().optional(),
   params: z.record(z.string(), z.any()).optional(),
-  body: z.string().nullable().optional(),
+  body: z.any().optional(), // have seen both null and empty {}
   headers: z.record(z.string(), z.any()).optional(),
   host: z.string().nullable().optional(),
   order: z.number().optional(),

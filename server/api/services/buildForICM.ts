@@ -303,7 +303,6 @@ function unflattenSaveData(flatData: FlatSaveData): SaveFieldData {
 
     for (const parent of parents) {
       // Check if this parent has an @index pattern (e.g., "container-1-...@0")
-      // const atIndexMatch = parent.match(/^(.+)@(\d+)$/);
       const [parentId, parentIndex] = parent.split('@');
 
       if (parentIndex) {
