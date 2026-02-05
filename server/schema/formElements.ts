@@ -72,10 +72,6 @@ const formElementBaseSchema = z.object({
   databindings: z.array(dataBindingSchema).optional(),
 });
 
-/**
- * Text Input Element Schema
- * For single-line text input fields
- */
 export const textInputElementSchema = formElementBaseSchema.extend({
   type: z.literal(ElementTypeMap.TextInput),
   attributes: z.object({
@@ -90,10 +86,6 @@ export const textInputElementSchema = formElementBaseSchema.extend({
   }),
 });
 
-/**
- * Textarea Element Schema
- * For multi-line text input fields
- */
 export const textareaInputElementSchema = formElementBaseSchema.extend({
   type: z.literal(ElementTypeMap.TextAreaInput),
   attributes: z.object({
@@ -108,10 +100,6 @@ export const textareaInputElementSchema = formElementBaseSchema.extend({
   }),
 });
 
-/**
- * Number Input Element Schema
- * For numeric input fields
- */
 export const numberInputElementSchema = formElementBaseSchema.extend({
   type: z.literal(ElementTypeMap.NumberInput),
   attributes: z.object({
@@ -127,10 +115,6 @@ export const numberInputElementSchema = formElementBaseSchema.extend({
   }),
 });
 
-/**
- * Date Select Input Element Schema
- * For date picker fields
- */
 export const dateSelectInputElementSchema = formElementBaseSchema.extend({
   type: z.literal(ElementTypeMap.DateSelectInput),
   attributes: z.object({
@@ -144,10 +128,6 @@ export const dateSelectInputElementSchema = formElementBaseSchema.extend({
   }),
 });
 
-/**
- * Select Input Element Schema
- * For dropdown/select fields
- */
 export const selectInputElementSchema = formElementBaseSchema.extend({
   type: z.literal(ElementTypeMap.SelectInput),
   attributes: z.object({
@@ -159,10 +139,6 @@ export const selectInputElementSchema = formElementBaseSchema.extend({
   }),
 });
 
-/**
- * Radio Input Element Schema
- * For radio button groups
- */
 export const radioInputElementSchema = formElementBaseSchema.extend({
   type: z.literal(ElementTypeMap.RadioInput),
   attributes: z.object({
@@ -176,10 +152,6 @@ export const radioInputElementSchema = formElementBaseSchema.extend({
   }),
 });
 
-/**
- * Checkbox Input Element Schema
- * For single checkbox fields
- */
 export const checkboxInputElementSchema = formElementBaseSchema.extend({
   type: z.literal(ElementTypeMap.CheckboxInput),
   attributes: z.object({
@@ -190,10 +162,6 @@ export const checkboxInputElementSchema = formElementBaseSchema.extend({
   }),
 });
 
-/**
- * Button Input Element Schema
- * For action buttons
- */
 export const buttonInputElementSchema = formElementBaseSchema.extend({
   type: z.literal(ElementTypeMap.ButtonInput),
   attributes: z.object({
@@ -205,10 +173,6 @@ export const buttonInputElementSchema = formElementBaseSchema.extend({
   }),
 });
 
-/**
- * Text Info Element Schema
- * For static text/HTML display
- */
 export const textInfoElementSchema = formElementBaseSchema.extend({
   type: z.literal(ElementTypeMap.TextInfo),
   attributes: z.object({
@@ -216,10 +180,6 @@ export const textInfoElementSchema = formElementBaseSchema.extend({
   }),
 });
 
-/**
- * HTML Element Schema
- * For custom HTML content
- */
 export const htmlElementSchema = formElementBaseSchema.extend({
   type: z.literal(ElementTypeMap.Html),
   attributes: z.object({
@@ -227,10 +187,6 @@ export const htmlElementSchema = formElementBaseSchema.extend({
   }),
 });
 
-/**
- * Container Element Schema
- * For grouping elements (sections, fieldsets, tabs, repeating containers)
- */
 export const containerElementSchema = formElementBaseSchema.extend({
   type: z.literal(ElementTypeMap.Container),
   attributes: z.object({
