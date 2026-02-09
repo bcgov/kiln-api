@@ -4,6 +4,7 @@ const ElementTypeMap = {
   TextInput: 'text-input',
   TextAreaInput: 'textarea-input',
   NumberInput: 'number-input',
+  CurrencyInput: 'currency-input',
   DateSelectInput: 'date-select-input',
   SelectInput: 'select-input',
   RadioInput: 'radio-input',
@@ -79,7 +80,9 @@ export const textInputElementSchema = formElementBaseSchema.extend({
     labelText: z.string().optional(),
     hideLabel: z.boolean().optional(),
     enableVarSub: z.boolean().optional(),
-    maskType: z.enum(['custom', 'phone', 'email', 'postal']).optional(),
+    maskType: z
+      .enum(['custom', 'phone', 'email', 'postal', 'currency'])
+      .optional(),
     mask: z.string().optional(),
     maxCount: z.number().optional(),
     value: z.string().optional(),
@@ -112,6 +115,20 @@ export const numberInputElementSchema = formElementBaseSchema.extend({
     step: z.number().optional(),
     value: z.number().or(z.string()).optional(), // decimal values are strings (eg "0.00")
     maskType: z.enum(['integer', 'decimal']).optional(),
+  }),
+});
+
+export const currencyInputElementSchema = formElementBaseSchema.extend({
+  type: z.literal(ElementTypeMap.CurrencyInput),
+  attributes: z.object({
+    placeholder: z.string().optional(),
+    labelText: z.string().optional(),
+    hideLabel: z.boolean().optional(),
+    enableVarSub: z.boolean().optional(),
+    min: z.number().optional(),
+    max: z.number().optional(),
+    step: z.number().optional(),
+    value: z.string().optional(), // decimal values are strings (eg "0.00")
   }),
 });
 
@@ -206,6 +223,7 @@ export const containerElementSchema = formElementBaseSchema.extend({
           typeof textInputElementSchema,
           typeof textareaInputElementSchema,
           typeof numberInputElementSchema,
+          typeof currencyInputElementSchema,
           typeof dateSelectInputElementSchema,
           typeof selectInputElementSchema,
           typeof radioInputElementSchema,
@@ -226,6 +244,7 @@ export const formElementUnionSchema = z.discriminatedUnion('type', [
   textInputElementSchema,
   textareaInputElementSchema,
   numberInputElementSchema,
+  currencyInputElementSchema,
   dateSelectInputElementSchema,
   selectInputElementSchema,
   radioInputElementSchema,
