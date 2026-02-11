@@ -9,6 +9,7 @@ const ElementTypeMap = {
   SelectInput: 'select-input',
   RadioInput: 'radio-input',
   CheckboxInput: 'checkbox-input',
+  CheckboxGroup: 'checkbox-group',
   ButtonInput: 'button-input',
   TextInfo: 'text-info',
   Html: 'html',
@@ -128,7 +129,7 @@ export const currencyInputElementSchema = formElementBaseSchema.extend({
     min: z.number().optional(),
     max: z.number().optional(),
     step: z.number().optional(),
-    value: z.string().optional(), // decimal values are strings (eg "0.00")
+    value: z.number().or(z.string()).optional(),
   }),
 });
 
@@ -176,6 +177,17 @@ export const checkboxInputElementSchema = formElementBaseSchema.extend({
     hideLabel: z.boolean().optional(),
     enableVarSub: z.boolean().optional(),
     defaultChecked: z.boolean().optional(),
+  }),
+});
+
+export const checkboxGroupElementSchema = formElementBaseSchema.extend({
+  type: z.literal(ElementTypeMap.CheckboxGroup),
+  attributes: z.object({
+    labelText: z.string().optional(),
+    hideLabel: z.boolean().optional(),
+    enableVarSub: z.boolean().optional(),
+    defaultSelected: z.array(z.string()).optional(),
+    options: z.array(fieldOptionSchema).or(z.tuple([])).optional(),
   }),
 });
 
@@ -228,6 +240,7 @@ export const containerElementSchema = formElementBaseSchema.extend({
           typeof selectInputElementSchema,
           typeof radioInputElementSchema,
           typeof checkboxInputElementSchema,
+          typeof checkboxGroupElementSchema,
           typeof buttonInputElementSchema,
           typeof textInfoElementSchema,
           typeof htmlElementSchema,
@@ -249,6 +262,7 @@ export const formElementUnionSchema = z.discriminatedUnion('type', [
   selectInputElementSchema,
   radioInputElementSchema,
   checkboxInputElementSchema,
+  checkboxGroupElementSchema,
   buttonInputElementSchema,
   textInfoElementSchema,
   htmlElementSchema,
