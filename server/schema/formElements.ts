@@ -226,7 +226,7 @@ export const containerElementSchema = formElementBaseSchema.extend({
     repeaterItemLabel: z.string().optional(),
     legend: z.string().optional(),
     enableVarSub: z.boolean().optional(),
-    level: z.number().optional(),
+    level: z.number().or(z.string()).optional(),
   }),
   get children(): z.ZodOptional<
     z.ZodArray<
