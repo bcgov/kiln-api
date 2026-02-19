@@ -172,7 +172,6 @@ interface Item {
   attributes?: { [key: string]: any };
   visible_web?: boolean;
   visible_pdf?: boolean;
-  custom_visibility?: string;
   save_on_submit?: boolean;
 }
 
@@ -720,34 +719,17 @@ export class ICMService {
     return v;
   }
 
-  private isFieldVisible(
-    item: Item,
-    mode: 'web' | 'pdf' = 'web',
-    formState?: Record<string, any>
-  ): boolean {
-    let visible =
-      mode === 'pdf' ? item.visible_pdf !== false : item.visible_web !== false;
-
-    if (item.custom_visibility && typeof item.custom_visibility === 'string') {
-      try {
-        const fn = new Function(
-          'formState',
-          item.custom_visibility.replace(/^{|}$/g, '')
-        );
-        visible = !!fn(formState || {});
-      } catch (e) {
-        // fallback to previous visible value
-      }
-    }
-    return visible;
+  private isFieldVisible(item: Item, mode: 'web' | 'pdf' = 'web'): boolean {
+    return mode === 'pdf'
+      ? item.visible_pdf !== false
+      : item.visible_web !== false;
   }
 
   private shouldFieldBeIncludedForSaving(
     item: Item,
-    mode: 'web' | 'pdf' = 'web',
-    formState?: Record<string, any>
+    mode: 'web' | 'pdf' = 'web'
   ): boolean {
-    return this.isFieldVisible(item, mode, formState) || !!item.save_on_submit;
+    return this.isFieldVisible(item, mode) || !!item.save_on_submit;
   }
 
   private createSavedData(ctx: {
@@ -795,11 +777,7 @@ export class ICMService {
                       rowState &&
                       typeof rowState === 'object' &&
                       !Array.isArray(rowState) &&
-                      this.shouldFieldBeIncludedForSaving(
-                        child,
-                        'web',
-                        rowState as Record<string, any>
-                      ) &&
+                      this.shouldFieldBeIncludedForSaving(child, 'web') &&
                       (rowState as Record<string, any>)[child.uuid] !==
                         undefined
                     ) {
@@ -865,9 +843,7 @@ export class ICMService {
             for (const child of item.children) {
               if (child.type === 'container' && child.children) {
                 processItems([child], state);
-              } else if (
-                this.shouldFieldBeIncludedForSaving(child, 'web', state)
-              ) {
+              } else if (this.shouldFieldBeIncludedForSaving(child, 'web')) {
                 const val = state[child.uuid];
                 if (val !== undefined) {
                   saveFieldData[child.uuid] = val;
@@ -876,7 +852,7 @@ export class ICMService {
             }
           }
         } else {
-          if (this.shouldFieldBeIncludedForSaving(item, 'web', state)) {
+          if (this.shouldFieldBeIncludedForSaving(item, 'web')) {
             const val = state[item.uuid];
             if (val !== undefined) {
               saveFieldData[item.uuid] = val;
