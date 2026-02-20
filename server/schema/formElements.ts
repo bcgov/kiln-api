@@ -86,7 +86,7 @@ export const textInputElementSchema = formElementBaseSchema.extend({
       .optional(),
     mask: z.string().optional(),
     maxCount: z.number().optional(),
-    value: z.string().optional(),
+    // value: z.string().optional(),
   }),
 });
 
@@ -100,7 +100,7 @@ export const textareaInputElementSchema = formElementBaseSchema.extend({
     rows: z.number().optional(),
     cols: z.number().optional(),
     maxCount: z.number().optional(),
-    value: z.string().optional(),
+    // value: z.string().optional(),
   }),
 });
 
@@ -114,7 +114,7 @@ export const numberInputElementSchema = formElementBaseSchema.extend({
     min: z.number().optional(),
     max: z.number().optional(),
     step: z.number().optional(),
-    value: z.number().or(z.string()).optional(), // decimal values are strings (eg "0.00")
+    // value: z.number().or(z.string()).optional(), // decimal values are strings (eg "0.00")
     maskType: z.enum(['integer', 'decimal']).optional(),
   }),
 });
@@ -129,7 +129,7 @@ export const currencyInputElementSchema = formElementBaseSchema.extend({
     min: z.number().optional(),
     max: z.number().optional(),
     step: z.number().optional(),
-    value: z.number().or(z.string()).optional(),
+    // value: z.number().or(z.string()).optional(),
   }),
 });
 
