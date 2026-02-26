@@ -14,9 +14,9 @@ spec:
     matchLabels:
       app.kubernetes.io/name: {{ include "kilnAPI.name" . }}-nginx
   template:
-    annotations:
-      rollme: {{ randAlphaNum 8 | quote }}
     metadata:
+      annotations:
+        rollme: {{ randAlphaNum 8 | quote }}
       labels:
         app.kubernetes.io/name: {{ include "kilnAPI.name" . }}-nginx
     spec:

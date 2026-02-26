@@ -13,9 +13,9 @@ spec:
     matchLabels:
       {{- include "kilnAPI.selectorLabels" . | nindent 6 }}
   template:
-    annotations:
-        rollme: {{ randAlphaNum 8 | quote }}
     metadata:
+      annotations:
+        rollme: {{ randAlphaNum 8 | quote }}
       # annotations:
       #   # 1. Vault injector configuration
       #   vault.hashicorp.com/agent-inject: 'true'
