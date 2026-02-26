@@ -13,6 +13,8 @@ spec:
     matchLabels:
       {{- include "kilnAPI.selectorLabels" . | nindent 6 }}
   template:
+    annotations:
+        rollme: {{ randAlphaNum 8 | quote }}
     metadata:
       # annotations:
       #   # 1. Vault injector configuration
@@ -150,3 +152,5 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+  strategy:
+      type: RollingUpdate
