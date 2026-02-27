@@ -64,7 +64,6 @@ const formElementBaseSchema = z.object({
   is_required: z.boolean(),
   visible_web: z.boolean(),
   visible_pdf: z.boolean(),
-  custom_visibility: z.string().nullable(),
   is_read_only: z.boolean().or(z.string()).optional(),
   save_on_submit: z.boolean(),
   order: z.number(),
