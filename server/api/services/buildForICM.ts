@@ -6,7 +6,13 @@ import {
   FormExceptions,
   formExceptionSchema,
 } from '../../schema/form';
-import { ElementType, FieldValue, GroupValue } from '../../schema/formElements';
+import {
+  ContainerElement,
+  ElementType,
+  FieldValue,
+  FormElement,
+  GroupValue,
+} from '../../schema/formElements';
 import { create } from 'xmlbuilder2';
 import L from '../../common/logger';
 
@@ -53,9 +59,9 @@ export default async function buildForICM(
     ...exceptionsDictionary.subRoots,
   ];
 
-  const dataTypeMap = getElementTypes(formDefinition.elements);
+  const elementRecord = flattenElements(formDefinition.elements);
 
-  const flatSaveData = flattenSaveData(saveData, outerWrappers, dataTypeMap);
+  const flatSaveData = flattenSaveData(saveData, outerWrappers, elementRecord);
 
   const flatAddFields = flattenSaveData(exceptionsDictionary.addFields);
   const flatWrapperTags = exceptionsDictionary.wrapperTags.flatMap((tag) =>
@@ -100,15 +106,14 @@ async function getExceptionsDictionary(formId: string) {
   }
 }
 
-function getElementTypes(
-  elements: FormDefinition['elements']
-): Record<string, ElementType> {
-  let records: Record<string, ElementType> = {};
+type ElementRecord = Record<string, Exclude<FormElement, ContainerElement>>;
+function flattenElements(elements: FormDefinition['elements']): ElementRecord {
+  let records: ElementRecord = {};
   elements.forEach((e) => {
     if (e.type === 'container' && e.children) {
-      records = { ...records, ...getElementTypes(e.children) };
-    } else {
-      records[e.uuid] = e.type;
+      records = { ...records, ...flattenElements(e.children) };
+    } else if (e.type !== 'container') {
+      records[e.uuid] = e;
     }
   });
   return records;
@@ -135,7 +140,6 @@ function isGroupValue(
   );
 }
 
-// type FlatSaveItemType = 'container' | 'repeater' | 'field';
 type FlatSaveData = {
   uuid: string;
   parents: string[];
@@ -145,13 +149,13 @@ type FlatSaveData = {
 function flattenSaveData(
   saveData: SaveFieldData,
   parents: string[] = [],
-  dataTypeMap?: Record<string, ElementType>
+  elementRecord?: ElementRecord
 ): FlatSaveData {
   return Object.entries(saveData).reduce<FlatSaveData>((acc, [key, value]) => {
     if (isNestedSaveData(value)) {
       return [
         ...acc,
-        ...flattenSaveData(value, [...parents, key], dataTypeMap),
+        ...flattenSaveData(value, [...parents, key], elementRecord),
       ];
     }
     if (isGroupValue(value)) {
@@ -159,16 +163,29 @@ function flattenSaveData(
         flattenSaveData(
           v,
           [...parents, `${key}-List`, `${key}@${i}`],
-          dataTypeMap
+          elementRecord
         )
       );
       return [...acc, ...groupItems];
     }
+    if (elementRecord && elementRecord[key]?.type === 'checkbox-group') {
+      const values = Array.isArray(value) ? value : [value?.toString()];
+      // create single checkbox input for each option in the field, whether or not its checked
+      const items = elementRecord[key].options.map((o) => ({
+        uuid: `${key}-${o.value}`,
+        parents,
+        value: values.includes(o.value),
+        type: 'checkbox-input' as ElementType,
+      }));
+      return [...acc, ...items];
+    }
+    // technically savedata can still be an array and not be a checkbox group in the element map
+    // in those cases xml builder will create sibling tags with the same name
     const item = {
       uuid: key,
       parents,
       value,
-      type: dataTypeMap ? dataTypeMap[key] : undefined,
+      type: elementRecord ? elementRecord[key]?.type : undefined,
     };
     return [...acc, item];
   }, []);
