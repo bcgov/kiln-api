@@ -64,6 +64,7 @@ export default async function buildForICM(
 
   const exceptedSaveData = pipeSaveData(
     flatSaveData,
+    (saveData) => saveData.filter((item) => item.type !== 'text-info'),
     applyWrapperTags(flatWrapperTags),
     applyOmitFields(exceptionsDictionary.omitFields),
     applyOverrideFields(exceptionsDictionary.overrideFields),
