@@ -68,7 +68,6 @@ const formElementBaseSchema = z.object({
   save_on_submit: z.boolean(),
   order: z.number(),
   tags: z.record(z.string(), z.null()).or(z.tuple([])).optional(),
-  options: z.array(fieldOptionSchema).or(z.tuple([])).optional(),
   parent_id: z.number().nullable(),
   databindings: z.array(dataBindingSchema).optional(),
 });
@@ -147,17 +146,18 @@ export const dateSelectInputElementSchema = formElementBaseSchema.extend({
 
 export const selectInputElementSchema = formElementBaseSchema.extend({
   type: z.literal(ElementTypeMap.SelectInput),
+  options: z.array(fieldOptionSchema).or(z.tuple([])),
   attributes: z.object({
     labelText: z.string().optional(),
     hideLabel: z.boolean().optional(),
     enableVarSub: z.boolean().optional(),
     defaultSelected: z.string().nullable().optional(),
-    options: z.array(fieldOptionSchema).or(z.tuple([])).optional(), // duplicate of element.option
   }),
 });
 
 export const radioInputElementSchema = formElementBaseSchema.extend({
   type: z.literal(ElementTypeMap.RadioInput),
+  options: z.array(fieldOptionSchema).or(z.tuple([])),
   attributes: z.object({
     labelText: z.string().optional(),
     hideLabel: z.boolean().optional(),
@@ -165,7 +165,6 @@ export const radioInputElementSchema = formElementBaseSchema.extend({
     defaultSelected: z.string().nullable().optional(),
     labelPosition: z.enum(['left', 'right']).optional(),
     orientation: z.enum(['horizontal', 'vertical']).optional(),
-    options: z.array(fieldOptionSchema).or(z.tuple([])).optional(),
   }),
 });
 
@@ -181,12 +180,12 @@ export const checkboxInputElementSchema = formElementBaseSchema.extend({
 
 export const checkboxGroupElementSchema = formElementBaseSchema.extend({
   type: z.literal(ElementTypeMap.CheckboxGroup),
+  options: z.array(fieldOptionSchema).or(z.tuple([])),
   attributes: z.object({
     labelText: z.string().optional(),
     hideLabel: z.boolean().optional(),
     enableVarSub: z.boolean().optional(),
     defaultSelected: z.array(z.string()).optional(),
-    options: z.array(fieldOptionSchema).or(z.tuple([])).optional(),
   }),
 });
 
