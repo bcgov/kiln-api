@@ -167,7 +167,6 @@ interface Item {
   attributes?: { [key: string]: any };
   visible_web?: boolean;
   visible_pdf?: boolean;
-  custom_visibility?: string;
   save_on_submit?: boolean;
 }
 
@@ -209,7 +208,7 @@ export class ICMService {
         ? error
         : 'Unknown error occurred';
 
-    L.error({err: error}, errorMessage);
+    L.error({ err: error }, errorMessage);
 
     return {
       success: false,
@@ -231,7 +230,7 @@ export class ICMService {
     } else {
       const errorData = (await response.json().catch(() => ({}))) as any;
       const errorMessage = errorData?.error || defaultErrorMessage;
-      L.error({ err: errorMessage },'ICMClient API Error');
+      L.error({ err: errorMessage }, 'ICMClient API Error');
       return {
         success: false,
         error: errorMessage,
@@ -254,7 +253,7 @@ export class ICMService {
         data: pdfData,
       };
     } else {
-      L.error({ err: defaultErrorMessage}, 'PDF generation failed:');
+      L.error({ err: defaultErrorMessage }, 'PDF generation failed:');
       return {
         success: false,
         error: defaultErrorMessage,
@@ -271,11 +270,10 @@ export class ICMService {
     try {
       const { attachmentId, OfficeName, username, savedForm } = data;
 
-      if (!attachmentId || !OfficeName || !savedForm) {
+      if (!attachmentId || !savedForm) {
         return {
           success: false,
-          error:
-            'Missing required fields: attachmentId, OfficeName, or savedForm',
+          error: 'Missing required fields: attachmentId or savedForm',
           status: 400,
         };
       }
@@ -287,10 +285,10 @@ export class ICMService {
         originalServer,
       };
 
-      if (token) {
-        payload.token = token;
-      } else if (username?.trim()) {
+      if (username?.trim()) {
         payload.username = username;
+      } else if (token) {
+        payload.token = token;
       } else {
         L.warn('No authentication provided for ICM data save');
       }
@@ -370,7 +368,10 @@ export class ICMService {
           status: 401,
         };
       }
-      const response = await this.icmClient.unlockICMData(payload, originalServer);    
+      const response = await this.icmClient.unlockICMData(
+        payload,
+        originalServer
+      );
       return this.handleResponse(
         response,
         'Error unlocking ICM form. Please try again.'
@@ -669,34 +670,17 @@ export class ICMService {
     return v;
   }
 
-  private isFieldVisible(
-    item: Item,
-    mode: 'web' | 'pdf' = 'web',
-    formState?: Record<string, any>
-  ): boolean {
-    let visible =
-      mode === 'pdf' ? item.visible_pdf !== false : item.visible_web !== false;
-
-    if (item.custom_visibility && typeof item.custom_visibility === 'string') {
-      try {
-        const fn = new Function(
-          'formState',
-          item.custom_visibility.replace(/^{|}$/g, '')
-        );
-        visible = !!fn(formState || {});
-      } catch (e) {
-        // fallback to previous visible value
-      }
-    }
-    return visible;
+  private isFieldVisible(item: Item, mode: 'web' | 'pdf' = 'web'): boolean {
+    return mode === 'pdf'
+      ? item.visible_pdf !== false
+      : item.visible_web !== false;
   }
 
   private shouldFieldBeIncludedForSaving(
     item: Item,
-    mode: 'web' | 'pdf' = 'web',
-    formState?: Record<string, any>
+    mode: 'web' | 'pdf' = 'web'
   ): boolean {
-    return this.isFieldVisible(item, mode, formState) || !!item.save_on_submit;
+    return this.isFieldVisible(item, mode) || !!item.save_on_submit;
   }
 
   private createSavedData(ctx: {
@@ -721,7 +705,10 @@ export class ICMService {
           const isRepeatable = item.attributes?.isRepeatable === true;
 
           if (isRepeatable) {
-            const explicitRows = groupState[item.uuid];
+            const containerKey =
+              (item as any)._containerInstanceKey ?? item.uuid;
+            const explicitRows =
+              (groupState as any)[containerKey] ?? groupState[item.uuid];
             if (Array.isArray(explicitRows) && explicitRows.length > 0) {
               const rows = explicitRows
                 .map((rowState) => {
@@ -731,17 +718,27 @@ export class ICMService {
                       rowState &&
                       typeof rowState === 'object' &&
                       !Array.isArray(rowState) &&
-                      this.shouldFieldBeIncludedForSaving(
-                        child,
-                        'web',
-                        rowState as Record<string, any>
-                      ) &&
+                      this.shouldFieldBeIncludedForSaving(child, 'web') &&
                       (rowState as Record<string, any>)[child.uuid] !==
                         undefined
                     ) {
                       row[child.uuid] = (rowState as Record<string, any>)[
                         child.uuid
                       ];
+                    }
+                  }
+                  // Preserve nested repeater arrays stored on the row object
+                  if (
+                    rowState &&
+                    typeof rowState === 'object' &&
+                    !Array.isArray(rowState)
+                  ) {
+                    for (const [k, v] of Object.entries(
+                      rowState as Record<string, any>
+                    )) {
+                      if (Array.isArray(v) && row[k] === undefined) {
+                        row[k] = v;
+                      }
                     }
                   }
                   return Object.keys(row).length > 0 ? row : null;
@@ -757,7 +754,7 @@ export class ICMService {
             const childUuids = new Set(
               (item.children || []).map((c) => c.uuid)
             );
-            const prefix = `${item.uuid}-`;
+            const prefix = `${containerKey}-`;
             const byGroupId = new Map<string, Record<string, any>>();
 
             for (const key of Object.keys(state)) {
@@ -787,9 +784,7 @@ export class ICMService {
             for (const child of item.children) {
               if (child.type === 'container' && child.children) {
                 processItems([child], state);
-              } else if (
-                this.shouldFieldBeIncludedForSaving(child, 'web', state)
-              ) {
+              } else if (this.shouldFieldBeIncludedForSaving(child, 'web')) {
                 const val = state[child.uuid];
                 if (val !== undefined) {
                   saveFieldData[child.uuid] = val;
@@ -798,7 +793,7 @@ export class ICMService {
             }
           }
         } else {
-          if (this.shouldFieldBeIncludedForSaving(item, 'web', state)) {
+          if (this.shouldFieldBeIncludedForSaving(item, 'web')) {
             const val = state[item.uuid];
             if (val !== undefined) {
               saveFieldData[item.uuid] = val;
@@ -883,7 +878,10 @@ export class ICMService {
       }
 
       if (action === 'save_and_close') {
-        const unlockResult = await this.unlockICMData({ ...sessionParams, originalServer }, token);
+        const unlockResult = await this.unlockICMData(
+          { ...sessionParams, originalServer },
+          token
+        );
         if (!unlockResult.success) {
           L.warn('Save succeeded but unlock failed:', unlockResult.error);
         }
