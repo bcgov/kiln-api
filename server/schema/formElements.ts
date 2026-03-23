@@ -61,7 +61,7 @@ const formElementBaseSchema = z.object({
   name: z.string(),
   description: z.string().nullable().optional(),
   help_text: z.string().nullable(),
-  is_required: z.boolean(),
+  is_required: z.boolean().or(z.string()).optional(),
   visible_web: z.boolean(),
   visible_pdf: z.boolean(),
   is_read_only: z.boolean().or(z.string()).optional(),
