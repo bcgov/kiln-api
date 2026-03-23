@@ -263,7 +263,7 @@ export class CommunicationsController {
           route: 'generateNewTemplate',
           requestData,
           authToken,
-          originalServer
+          originalServer,
         },
         'Incoming generateNewTemplate request'
       );
@@ -288,7 +288,10 @@ export class CommunicationsController {
       res.status(500).json({ error: errorMessage });
     }
   }
-  async compareFormData(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async compareFormData(
+    req: AuthenticatedRequest,
+    res: Response
+  ): Promise<void> {
     const originalServer = req.headers['x-original-server'] as string;
     try {
       const {
@@ -332,13 +335,16 @@ export class CommunicationsController {
   async saveFormData(req: AuthenticatedRequest, res: Response): Promise<void> {
     const originalServer = req.headers['x-original-server'] as string;
 
-    L.debug({
-      method: req.method,
-      headers: req.headers,        
-      params: req.params,          
-      query: req.query,            
-      body: req.body},
-      'saveFormData: full incoming request');
+    L.debug(
+      {
+        method: req.method,
+        headers: req.headers,
+        params: req.params,
+        query: req.query,
+        body: req.body,
+      },
+      'saveFormData: full incoming request'
+    );
 
     try {
       const {
@@ -549,7 +555,10 @@ export class CommunicationsController {
     }
   }
 
-  async loadPDFFromICMData(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async loadPDFFromICMData(
+    req: AuthenticatedRequest,
+    res: Response
+  ): Promise<void> {
     try {
       const originalServer = req.headers['x-original-server'] as string;
       const { isPortalIntegrated, ...params } = req.body;
@@ -557,13 +566,13 @@ export class CommunicationsController {
       const username = getUsername(req);
 
       let result;
-      
+
       result = await ICMService.loadPdfFromICMData(
         { ...params, username, originalServer },
         authToken
-      );      
+      );
 
-      if (result.success) {       
+      if (result.success) {
         res.status(200).json(result.data);
       } else {
         res.status(result.status || 500).json({ error: result.error });
