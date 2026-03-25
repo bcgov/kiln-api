@@ -46,6 +46,7 @@ jobs:
           tags: |
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=raw,value=test-latest,enable=${{ github.ref == 'refs/heads/test' }}
+            type=raw,value=staging-latest,enable=${{ github.ref == 'refs/heads/staging' }}
             type=raw,value=dev-latest,enable=${{ github.ref == 'refs/heads/dev' }}
             type=sha,format=short
             type=ref,event=tag
