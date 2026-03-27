@@ -4,6 +4,7 @@ import { ICMClient } from './icm.client';
 import z from 'zod';
 import buildForICM from './buildForICM';
 import { FieldValue, GroupValue } from '../../schema/formElements';
+import CacheService from './cache.service';
 
 interface SaveICMDataPayload {
   attachmentId: string;
@@ -40,6 +41,7 @@ interface LoadICMDataPayload {
 interface LoadICMDataRequest {
   username?: string;
   originalServer?: string;
+  attachmentId: string;
   [key: string]: any;
 }
 
@@ -178,7 +180,9 @@ interface Item {
 interface SavedData {
   data: Record<string, FieldValue | GroupValue>;
   form_definition: FormDefinition;
-  metadata: Record<string, any>;
+  metadata?: Record<string, any>;
+  TTL?: number;
+  params?: any;
 }
 
 interface SaveForPortalActionRequest {
@@ -379,15 +383,41 @@ export class ICMService {
           status: 401,
         };
       }
-
+      const attachmentCache = await CacheService.getAttachment(
+        data.attachmentId
+      );
+      if (attachmentCache) {
+        L.debug(`Cache hit for ${data.attachmentId}`);
+        return {
+          success: true,
+          data: { ...attachmentCache.attachment, TTL: attachmentCache.TTL },
+        };
+      }
+      L.debug(`Cache miss for ${data.attachmentId}`);
       const response = await this.icmClient.loadICMData(
         payload,
         originalServer
       );
-      return this.handleResponse(
+      const handledRequest = await this.handleResponse(
         response,
         'Error loading form. Please try again.'
       );
+      // const handledRequest = {
+      //   success: true,
+      //   data: {
+      //     data: {},
+      //     form_definition: formDefinitionSchema.parse(testFormData),
+      //   }
+      // }
+      if (handledRequest.success) {
+        // todo: extract and write files
+        await CacheService.setAttachment(
+          data.attachmentId,
+          handledRequest.data,
+          []
+        );
+      }
+      return handledRequest;
     } catch (error) {
       return this.handleError(error, 'Failed to load ICM data');
     }
