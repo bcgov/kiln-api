@@ -6,6 +6,7 @@ import {
   getUsername,
 } from '../middleware/auth.middleware';
 import L from '../../common/logger';
+import FileService from '../services/file.service';
 
 export class CommunicationsController {
   async generateForm(req: AuthenticatedRequest, res: Response): Promise<void> {
@@ -565,9 +566,7 @@ export class CommunicationsController {
       const authToken = getAuthToken(req);
       const username = getUsername(req);
 
-      let result;
-
-      result = await ICMService.loadPdfFromICMData(
+      const result = await ICMService.loadPdfFromICMData(
         { ...params, username, originalServer },
         authToken
       );
@@ -577,6 +576,40 @@ export class CommunicationsController {
       } else {
         res.status(result.status || 500).json({ error: result.error });
       }
+    } catch (error) {
+      let errorMessage = 'Internal server error';
+      if (error instanceof Error && error.message) {
+        errorMessage = error.message;
+      }
+      res.status(500).json({
+        error: errorMessage,
+      });
+    }
+  }
+  async uploadFile(req: AuthenticatedRequest, res: Response): Promise<void> {
+    const originalServer = req.headers['x-original-server'] as string;
+    const username = getUsername(req);
+    const authToken = getAuthToken(req);
+    const { attachmentId } = req.query;
+
+    if (!attachmentId || typeof attachmentId !== 'string') {
+      res.status(400).json({
+        error: 'Missing attachmentId',
+      });
+      return;
+    }
+
+    try {
+      const icmResult = await ICMService.loadICMData(
+        { attachmentId, username, originalServer },
+        authToken
+      );
+      if (!icmResult.success) {
+        res.status(icmResult.status || 500).json({ error: icmResult.error });
+        return;
+      }
+      const { form_definition: schema } = icmResult.data;
+      FileService.handleFileUpload(req, res, attachmentId, schema);
     } catch (error) {
       let errorMessage = 'Internal server error';
       if (error instanceof Error && error.message) {

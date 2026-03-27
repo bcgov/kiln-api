@@ -699,4 +699,46 @@ paths:
         500:
           description: Internal server error              
 
-
+  /uploadFile:
+    post:
+      tags:
+          - Communications Layer
+          - Kiln Interface
+      summary: File uploads from multipart/form-data
+      description:
+      consumes:
+        - multipart/form-data
+      produces:
+        - application/json
+      parameters:
+        - in: query
+          name: attachmentId
+          type: string
+          required: true
+        - in: query
+          name: username
+          type: string
+        - in: formData
+          name: file
+          type: file
+      responses:
+        200:
+          description: File uploaded successfully
+          schema:
+            type: object
+            properties:
+              fileId:
+                type: string
+                description: ID for file generated on the server
+              originalName:
+                type: string
+                description: Original filename sent to server
+              size:
+                type: number
+                description: File size in bytes
+        400:
+          description: Bad request - missing required parameters
+        401:
+          description: Unauthorized - authentication required
+        500:
+          description: Internal server error

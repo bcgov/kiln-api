@@ -52,7 +52,7 @@ router.post('/bindPreviewForm', extractAuth, (req, res) =>
   CommunicationsController.bindPreviewForm(req, res)
 );
 router.post('/saveFormData', extractAuth, (req, res) =>
-  CommunicationsController.saveFormData(req, res)
+  CommunicationsController.compareFormData(req, res)
 );
 router.post('/generatePDFFromJson', (req, res) =>
   CommunicationsController.generatePdfFromJson(req, res)
@@ -60,6 +60,9 @@ router.post('/generatePDFFromJson', (req, res) =>
 router.post('/loadPDFFromICMData', extractAuth, (req, res) =>
   CommunicationsController.loadPDFFromICMData(req, res)
 );
+router.post('/uploadFile', extractAuth, (req, res) => 
+  CommunicationsController.uploadFile(req, res)
+)
 
 // Kiln Renderer Routes
 router.get('/view', (req, res) => RendererController.viewForm(req, res));

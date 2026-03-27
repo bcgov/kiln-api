@@ -28,7 +28,7 @@ export function extractAuth(
       token = authHeader;
     }
 
-    const username = req.body?.username || req.params?.username || req.cookies?.username || req.body.sessionParams?.username;
+    const username = req.body?.username || req.params?.username || req.query?.username || req.cookies?.username || req.body.sessionParams?.username;
 
     
     if (!token && !username) {

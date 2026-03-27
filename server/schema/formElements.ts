@@ -13,6 +13,7 @@ const ElementTypeMap = {
   ButtonInput: 'button-input',
   TextInfo: 'text-info',
   Html: 'html',
+  FileUpload: 'file-upload-input',
   Container: 'container',
 } as const;
 
@@ -214,6 +215,24 @@ export const htmlElementSchema = formElementBaseSchema.extend({
   }),
 });
 
+export const fileUploadElementSchema = formElementBaseSchema.extend({
+  type: z.literal(ElementTypeMap.FileUpload),
+  // value: z.object({
+  //   url: z.string().optional(),
+  //   id: z.string(),
+  //   size: z.number(),
+  //   fileType: z.string(),
+  //   originalName: z.string(),
+  // }),
+  attributes: z.object({
+    fileTypes: z.array(z.object({ label: z.string(), value: z.string() })),
+    multiple: z.boolean(),
+    maxFileSize: z.number().or(z.string()),
+    labelText: z.string().optional(),
+    enableVarSub: z.boolean().optional(),
+  }),
+});
+
 export const containerElementSchema = formElementBaseSchema.extend({
   type: z.literal(ElementTypeMap.Container),
   attributes: z.object({
@@ -242,6 +261,7 @@ export const containerElementSchema = formElementBaseSchema.extend({
           typeof buttonInputElementSchema,
           typeof textInfoElementSchema,
           typeof htmlElementSchema,
+          typeof fileUploadElementSchema,
           typeof containerElementSchema
         ]
       >
@@ -264,6 +284,7 @@ export const formElementUnionSchema = z.discriminatedUnion('type', [
   buttonInputElementSchema,
   textInfoElementSchema,
   htmlElementSchema,
+  fileUploadElementSchema,
   containerElementSchema,
 ]);
 
@@ -280,4 +301,5 @@ export type CheckboxInputElement = z.infer<typeof checkboxInputElementSchema>;
 export type ButtonInputElement = z.infer<typeof buttonInputElementSchema>;
 export type TextInfoElement = z.infer<typeof textInfoElementSchema>;
 export type HTMLElement = z.infer<typeof htmlElementSchema>;
+export type FileUploadElement = z.infer<typeof fileUploadElementSchema>;
 export type ContainerElement = z.infer<typeof containerElementSchema>;
