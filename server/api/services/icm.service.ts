@@ -24,13 +24,6 @@ interface SaveICMDataRequest {
   originalServer?: string;
 }
 
-interface SaveICMDataResult {
-  success: boolean;
-  data?: any;
-  error?: string;
-  status?: number;
-}
-
 interface LoadICMDataPayload {
   token?: string;
   username?: string;
@@ -136,11 +129,19 @@ interface SubmitButtonActionRequest {
   config: any;
 }
 
-interface SaveICMDataResult {
-  success: boolean;
-  data?: any;
-  error?: string;
-  status?: number;
+// was identical to ICMDataResult.
+// removed for now to make way for ICMDataError union
+// interface SaveICMDataResult {
+//   success: boolean;
+//   data?: any;
+//   error?: string;
+//   status?: number;
+// }
+
+interface ICMDataError {
+  success: false;
+  error: string;
+  status: number;
 }
 
 interface SubmitButtonActionResult {
@@ -209,7 +210,7 @@ export class ICMService {
   private handleError(
     error: unknown,
     errorMessage: string
-  ): SaveICMDataResult | ICMDataResult {
+  ): ICMDataError {
     const errorDetail =
       error instanceof Error
         ? error.message
@@ -229,7 +230,7 @@ export class ICMService {
   private async handleResponse(
     response: any,
     defaultErrorMessage: string
-  ): Promise<ICMDataResult | SaveICMDataResult> {
+  ): Promise<ICMDataResult | ICMDataError> {
     if (response.ok) {
       const result = await response.json();
       return {
@@ -316,7 +317,7 @@ export class ICMService {
     data: SaveICMDataRequest,
     token?: string,
     originalServer?: string
-  ): Promise<SaveICMDataResult> {
+  ): Promise<ICMDataResult | ICMDataError> {
     try {
       const { attachmentId, OfficeName, username, savedForm } = data;
 
@@ -383,41 +384,14 @@ export class ICMService {
           status: 401,
         };
       }
-      const attachmentCache = await CacheService.getAttachment(
-        data.attachmentId
-      );
-      if (attachmentCache) {
-        L.debug(`Cache hit for ${data.attachmentId}`);
-        return {
-          success: true,
-          data: { ...attachmentCache.attachment, TTL: attachmentCache.TTL },
-        };
-      }
-      L.debug(`Cache miss for ${data.attachmentId}`);
       const response = await this.icmClient.loadICMData(
         payload,
         originalServer
       );
-      const handledRequest = await this.handleResponse(
+      return this.handleResponse(
         response,
         'Error loading form. Please try again.'
       );
-      // const handledRequest = {
-      //   success: true,
-      //   data: {
-      //     data: {},
-      //     form_definition: formDefinitionSchema.parse(testFormData),
-      //   }
-      // }
-      if (handledRequest.success) {
-        // todo: extract and write files
-        await CacheService.setAttachment(
-          data.attachmentId,
-          handledRequest.data,
-          []
-        );
-      }
-      return handledRequest;
     } catch (error) {
       return this.handleError(error, 'Failed to load ICM data');
     }
@@ -620,13 +594,13 @@ export class ICMService {
     }
   }
 
-  async bindFormData(rawFormData: any): Promise<any> {
+  async bindFormData(rawFormData: any) {
     try {
       if (!rawFormData) {
         return {
-          form_definition: null,
-          data: null,
-          metadata: null,
+          success: false,
+          error: 'Failed to bind form data: no form data',
+          status: 500
         };
       }
 
@@ -636,9 +610,9 @@ export class ICMService {
 
       if (!savedData || !formDefinition) {
         return {
-          form_definition: formDefinition,
-          data: savedData,
-          metadata: metadata,
+          success: false,
+          error: 'Failed to bind form data: no form data',
+          status: 500
         };
       }
 
@@ -648,6 +622,7 @@ export class ICMService {
       );
 
       return {
+        success: true,
         form_definition: boundFormDefinition,
         data: savedData,
         metadata: metadata,

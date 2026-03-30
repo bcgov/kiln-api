@@ -7,6 +7,8 @@ import {
 } from '../middleware/auth.middleware';
 import L from '../../common/logger';
 import FileService from '../services/file.service';
+import { RequestWithCache } from '../middleware/cache.middleware';
+import CacheService from '../services/cache.service';
 
 export class CommunicationsController {
   async generateForm(req: AuthenticatedRequest, res: Response): Promise<void> {
@@ -27,7 +29,11 @@ export class CommunicationsController {
     }
   }
 
-  async loadICMData(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async loadICMData(req: RequestWithCache, res: Response): Promise<void> {
+    if (req.attachmentCache) {
+      res.status(200).json(req.attachmentCache);
+      return;
+    }
     const originalServer = req.headers['x-original-server'] as string;
     const { ...params } = req.body;
     const authToken = getAuthToken(req);
@@ -69,7 +75,7 @@ export class CommunicationsController {
     const result = await ICMService.loadSavedJson(params);
 
     if (result.success) {
-      const boundData = await ICMService.bindFormData(result.data);
+      const boundData = (await ICMService.bindFormData(result.data)) as any;
       // Preserve params from original response for generate flow
       // Communication-Layer stores attachmentId, OfficeName, etc. in params
       if (result.data?.params) {
@@ -183,7 +189,11 @@ export class CommunicationsController {
     }
   }
 
-  async loadBoundForm(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async loadBoundForm(req: RequestWithCache, res: Response): Promise<void> {
+    if (req.attachmentCache) {
+      res.status(200).json(req.attachmentCache.attachment);
+      return;
+    }
     try {
       const originalServer = req.headers['x-original-server'] as string;
       const { isPortalIntegrated, ...params } = req.body;
@@ -211,12 +221,23 @@ export class CommunicationsController {
         );
       }
 
-      if (result.success) {
-        const boundData = await ICMService.bindFormData(result.data);
-        res.status(200).json(boundData);
-      } else {
+      if (!result.success) {
         res.status(result.status || 500).json({ error: result.error });
+        return;
       }
+
+      // TODO extract and create files using fileId in field data
+      const boundData = await ICMService.bindFormData(result.data);
+      if (boundData.error) {
+        res.status(boundData.status).json({ error: boundData.error });
+        return;
+      }
+      const TTL = await CacheService.setAttachment(
+        req.body.attachmentId,
+        boundData,
+        []
+      );
+      res.status(200).json({ ...boundData, TTL });
     } catch (error) {
       let errorMessage = 'Internal server error';
       if (error instanceof Error && error.message) {
@@ -586,29 +607,22 @@ export class CommunicationsController {
       });
     }
   }
-  async uploadFile(req: AuthenticatedRequest, res: Response): Promise<void> {
-    const originalServer = req.headers['x-original-server'] as string;
-    const username = getUsername(req);
-    const authToken = getAuthToken(req);
-    const { attachmentId } = req.query;
-
-    if (!attachmentId || typeof attachmentId !== 'string') {
+  async uploadFile(req: RequestWithCache, res: Response): Promise<void> {
+    const { attachmentCache, attachmentId } = req;
+    if (!attachmentId) {
       res.status(400).json({
         error: 'Missing attachmentId',
       });
       return;
     }
-
+    if (!attachmentCache) {
+      res.status(400).json({
+        error: 'Missing attachment cache',
+      });
+      return;
+    }
     try {
-      const icmResult = await ICMService.loadICMData(
-        { attachmentId, username, originalServer },
-        authToken
-      );
-      if (!icmResult.success) {
-        res.status(icmResult.status || 500).json({ error: icmResult.error });
-        return;
-      }
-      const { form_definition: schema } = icmResult.data;
+      const schema = attachmentCache.attachment.form_definition;
       FileService.handleFileUpload(req, res, attachmentId, schema);
     } catch (error) {
       let errorMessage = 'Internal server error';

@@ -71,6 +71,7 @@ const formElementBaseSchema = z.object({
   tags: z.record(z.string(), z.null()).or(z.tuple([])).optional(),
   parent_id: z.number().nullable(),
   databindings: z.array(dataBindingSchema).optional(),
+  value: z.any(),
 });
 
 export const textInputElementSchema = formElementBaseSchema.extend({

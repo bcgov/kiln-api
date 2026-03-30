@@ -6,13 +6,14 @@ import CommunicationsController from './communications.controller';
 import RendererController from './renderer.controller';
 import examplesRouter from './examples/router';
 import { extractAuth } from '../middleware/auth.middleware';
+import { withAttachmentCache } from '../middleware/cache.middleware';
 
 const router = express.Router();
 
 router.post('/generateForm', extractAuth, (req, res) =>
   CommunicationsController.generateForm(req, res)
 );
-router.post('/loadICMData', extractAuth, (req, res) =>
+router.post('/loadICMData', extractAuth, withAttachmentCache, (req, res) =>
   CommunicationsController.loadICMData(req, res)
 );
 router.post('/unlockICMData', extractAuth, (req, res) =>
@@ -45,7 +46,7 @@ router.post('/cancelForPortalAction', (req, res) =>
 router.post('/generateNewTemplate', extractAuth, (req, res) =>
   CommunicationsController.generateNewTemplate(req, res)
 );
-router.post('/loadBoundForm', extractAuth, (req, res) =>
+router.post('/loadBoundForm', extractAuth, withAttachmentCache, (req, res) =>
   CommunicationsController.loadBoundForm(req, res)
 );
 router.post('/bindPreviewForm', extractAuth, (req, res) =>
@@ -60,7 +61,7 @@ router.post('/generatePDFFromJson', (req, res) =>
 router.post('/loadPDFFromICMData', extractAuth, (req, res) =>
   CommunicationsController.loadPDFFromICMData(req, res)
 );
-router.post('/uploadFile', extractAuth, (req, res) => 
+router.post('/uploadFile', extractAuth, withAttachmentCache, (req, res) => 
   CommunicationsController.uploadFile(req, res)
 )
 

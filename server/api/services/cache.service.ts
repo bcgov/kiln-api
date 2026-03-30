@@ -1,7 +1,7 @@
 import EventEmitter from 'events';
 import { createClient } from 'redis';
-import { formDefinitionSchema } from '../../schema/form';
-import { fieldValueSchema } from '../../schema/formElements';
+import { FormDefinition, formDefinitionSchema } from '../../schema/form';
+import { FieldValue, fieldValueSchema } from '../../schema/formElements';
 import z from 'zod';
 import L from '../../common/logger';
 
@@ -15,6 +15,7 @@ const attachmentCacheSchema = z.object({
     data: z.record(z.string(), fieldValueSchema),
     form_definition: formDefinitionSchema,
     metadata: z.record(z.string(), z.any()).optional(),
+    bound: z.boolean().optional(),
   }),
   files: z.array(
     z.object({
@@ -23,6 +24,9 @@ const attachmentCacheSchema = z.object({
     })
   ),
 });
+export type AttachmentCache = z.infer<typeof attachmentCacheSchema> & {
+  TTL: number;
+};
 
 export class CacheService {
   public client;
@@ -66,7 +70,10 @@ export class CacheService {
     attachment: unknown,
     files: FileData
   ) {
-    const attachmentResult = attachmentCacheSchema.safeParse({attachment, files});
+    const attachmentResult = attachmentCacheSchema.safeParse({
+      attachment,
+      files,
+    });
     if (attachmentResult.error) {
       throw new Error(
         `Schema error setting cache for ${attachmentId}\n ${z.prettifyError(
@@ -84,7 +91,7 @@ export class CacheService {
     return this.TTL;
   }
 
-  async getAttachment(attachmentId: string) {
+  async getAttachment(attachmentId: string): Promise<AttachmentCache | false> {
     const attachmentData = await this.client.json.get(
       `attachment:${attachmentId}`
     );
