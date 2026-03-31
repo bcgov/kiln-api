@@ -29,11 +29,12 @@ export class CommunicationsController {
     }
   }
 
-  async loadICMData(req: RequestWithCache, res: Response): Promise<void> {
-    if (req.attachmentCache) {
-      res.status(200).json(req.attachmentCache);
-      return;
-    }
+  async loadICMData(req: AuthenticatedRequest, res: Response): Promise<void> {
+    // not sure where or if this route is used yet
+    // if (req.attachmentCache) {
+    //   res.status(200).json(req.attachmentCache);
+    //   return;
+    // }
     const originalServer = req.headers['x-original-server'] as string;
     const { ...params } = req.body;
     const authToken = getAuthToken(req);

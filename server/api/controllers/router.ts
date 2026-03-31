@@ -13,7 +13,7 @@ const router = express.Router();
 router.post('/generateForm', extractAuth, (req, res) =>
   CommunicationsController.generateForm(req, res)
 );
-router.post('/loadICMData', extractAuth, withAttachmentCache, (req, res) =>
+router.post('/loadICMData', extractAuth, (req, res) =>
   CommunicationsController.loadICMData(req, res)
 );
 router.post('/unlockICMData', extractAuth, (req, res) =>
