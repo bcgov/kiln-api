@@ -201,7 +201,9 @@ export class CommunicationsController {
       const username = getUsername(req);
 
       let result;
-      if (isPortalIntegrated) {
+      if (process.env.TEST_FORM_PATH) {
+        result = await ICMService.loadMockFormData(process.env.TEST_FORM_PATH);
+      } else if (isPortalIntegrated) {
         const p: Record<string, any> = { ...params };
         if (!p.id && authToken) p.id = authToken;
 
@@ -310,6 +312,7 @@ export class CommunicationsController {
       res.status(500).json({ error: errorMessage });
     }
   }
+
   async compareFormData(
     req: AuthenticatedRequest,
     res: Response
@@ -607,6 +610,7 @@ export class CommunicationsController {
       });
     }
   }
+
   async uploadFile(req: RequestWithCache, res: Response): Promise<void> {
     const { attachmentCache, attachmentId } = req;
     if (!attachmentId) {

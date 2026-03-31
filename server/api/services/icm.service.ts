@@ -4,7 +4,7 @@ import { ICMClient } from './icm.client';
 import z from 'zod';
 import buildForICM from './buildForICM';
 import { FieldValue, GroupValue } from '../../schema/formElements';
-import CacheService from './cache.service';
+import fs from 'fs';
 
 interface SaveICMDataPayload {
   attachmentId: string;
@@ -207,10 +207,7 @@ export class ICMService {
     this.icmClient = new ICMClient();
   }
 
-  private handleError(
-    error: unknown,
-    errorMessage: string
-  ): ICMDataError {
+  private handleError(error: unknown, errorMessage: string): ICMDataError {
     const errorDetail =
       error instanceof Error
         ? error.message
@@ -360,6 +357,22 @@ export class ICMService {
     }
   }
 
+  async loadMockFormData(path: string): Promise<ICMDataResult> {
+    L.warn(`Loading mock form data from ${path}`);
+    try {
+      const fileContent = await fs.promises.readFile(path, 'utf-8');
+      const parsed = JSON.parse(fileContent);
+      return { success: true, data: parsed };
+    } catch (error) {
+      return {
+        success: false,
+        error: `Failed to load mock form data: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`,
+        status: 500,
+      };
+    }
+  }
   async loadICMData(
     data: LoadICMDataRequest,
     token?: string
@@ -600,7 +613,7 @@ export class ICMService {
         return {
           success: false,
           error: 'Failed to bind form data: no form data',
-          status: 500
+          status: 500,
         };
       }
 
@@ -612,7 +625,7 @@ export class ICMService {
         return {
           success: false,
           error: 'Failed to bind form data: no form data',
-          status: 500
+          status: 500,
         };
       }
 
