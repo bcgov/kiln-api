@@ -358,7 +358,7 @@ export class ICMService {
   }
 
   async loadMockFormData(path: string): Promise<ICMDataResult> {
-    L.warn(`Loading mock form data from ${path}`);
+    L.debug(`Loading mock form data from ${path}`);
     try {
       const fileContent = await fs.promises.readFile(path, 'utf-8');
       const parsed = JSON.parse(fileContent);

@@ -51,8 +51,11 @@ export class CacheService {
   async connect() {
     await this.client.connect();
     await this.subscriber.connect();
-    await this.client.configSet('notify-keyspace-events', 'Ex');
+    await this.client.configSet('notify-keyspace-events', 'Exg');
 
+    await this.subscriber.subscribe('__keyevent@0__:del', (key) =>
+      this.handleExpiry(key)
+    );
     await this.subscriber.subscribe('__keyevent@0__:expired', (key) =>
       this.handleExpiry(key)
     );
@@ -111,6 +114,10 @@ export class CacheService {
       ...attachment.data,
       TTL: this.TTL,
     };
+  }
+
+  async clearAttachment(attachmentId: string): Promise<void> {
+    await this.client.del(`attachment:${attachmentId}`);
   }
 
   async addFile(

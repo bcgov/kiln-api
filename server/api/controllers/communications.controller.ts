@@ -57,12 +57,20 @@ export class CommunicationsController {
     const authToken = getAuthToken(req);
     const username = getUsername(req);
 
+    if (process.env.TEST_FORM_PATH) {
+      L.debug(`Mocking unlockICMData form ${params.attachmentId}`);
+      CacheService.clearAttachment(params.attachmentId);
+      res.status(200).json({});
+      return;
+    }
+
     const result = await ICMService.unlockICMData(
       { ...params, username, originalServer },
       authToken
     );
 
     if (result.success) {
+      CacheService.clearAttachment(params.attachmentId);
       res.status(200).json(result.data);
     } else {
       res.status(result.status || 500).json({ error: result.error });
