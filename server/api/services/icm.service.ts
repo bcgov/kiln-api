@@ -563,13 +563,8 @@ export class ICMService {
         };
       }
 
-      const boundFormDefinition = this.applyDataBinding(
-        formDefinition,
-        savedData
-      );
-
       return {
-        form_definition: boundFormDefinition,
+        form_definition: formDefinition,
         data: savedData,
         metadata: metadata,
         bound: true,
@@ -578,96 +573,6 @@ export class ICMService {
       L.error({ err: error }, 'Error binding form data');
       return this.handleError(error, 'Failed to bind form data');
     }
-  }
-
-  private applyDataBinding(formDefinition: any, data: any): any {
-    if (!formDefinition || !data) return formDefinition;
-
-    const boundForm = JSON.parse(JSON.stringify(formDefinition));
-    const items = boundForm.data?.items || boundForm.elements || [];
-    this.bindValuesToItems(items, data);
-
-    return boundForm;
-  }
-
-  private bindValuesToItems(items: any[], dataMap: Record<string, any>): void {
-    if (!Array.isArray(items)) return;
-
-    for (const item of items) {
-      const lookupKey = item.id || item.uuid;
-      const dataValue = dataMap[lookupKey];
-
-      if (item.attributes?.isRepeatable && Array.isArray(dataValue)) {
-        item.repeaterData = dataValue;
-      }
-
-      if (item.children && Array.isArray(item.children)) {
-        this.bindValuesToItems(item.children, dataMap);
-      }
-
-      if (dataValue !== undefined && !item.attributes?.isRepeatable) {
-        this.setFieldValue(item, dataValue);
-      }
-    }
-  }
-
-  private setFieldValue(item: any, value: any): void {
-    if (!item.attributes) {
-      item.attributes = {};
-    }
-
-    const fieldType = item.type;
-
-    switch (fieldType) {
-      case 'checkbox-input':
-        const boolVal = this.coerceBoolean(value);
-        item.value = boolVal;
-        item.attributes.checked = boolVal;
-        break;
-
-      case 'radio-input':
-      case 'select-input':
-        const strVal = value == null ? '' : String(value);
-        item.value = strVal;
-        item.attributes.selected = strVal;
-        break;
-
-      case 'number-input':
-        const numVal = this.coerceNumber(value);
-        item.value = numVal;
-        item.attributes.value = numVal;
-        break;
-
-      case 'date-select-input':
-        const dateVal = this.normalizeDate(value);
-        item.value = dateVal || '';
-        item.attributes.value = dateVal;
-        break;
-
-      default:
-        const defaultVal = value == null ? '' : String(value);
-        item.value = defaultVal;
-        item.attributes.value = defaultVal;
-    }
-  }
-
-  private coerceBoolean(v: any): boolean {
-    if (typeof v === 'boolean') return v;
-    const s = String(v).trim().toLowerCase();
-    return ['true', '1', 'yes', 'on', 'y'].includes(s);
-  }
-
-  private coerceNumber(v: any): number | null {
-    if (v === null || v === undefined || v === '') return null;
-    const n = Number(v);
-    return Number.isNaN(n) ? null : n;
-  }
-
-  private normalizeDate(v: any): any {
-    if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(v)) {
-      return v.slice(0, 10);
-    }
-    return v;
   }
 
   private isFieldVisible(item: Item, mode: 'web' | 'pdf' = 'web'): boolean {
