@@ -15,8 +15,6 @@ spec:
       app.kubernetes.io/name: {{ include "kilnAPI.name" . }}-nginx
   template:
     metadata:
-      annotations:
-        rollme: {{ randAlphaNum 8 | quote }}
       labels:
         app.kubernetes.io/name: {{ include "kilnAPI.name" . }}-nginx
     spec:
@@ -75,6 +73,4 @@ spec:
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-  strategy:
-    type: RollingUpdate
 {{- end }}

@@ -14,8 +14,6 @@ spec:
       {{- include "kilnAPI.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      annotations:
-        rollme: {{ randAlphaNum 8 | quote }}
       # annotations:
       #   # 1. Vault injector configuration
       #   vault.hashicorp.com/agent-inject: 'true'
@@ -152,5 +150,3 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-  strategy:
-      type: RollingUpdate
