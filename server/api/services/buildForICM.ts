@@ -279,7 +279,9 @@ function defaultOverrides(item: FlatSaveData[number]) {
     }
     return {
       ...item,
-      value: new Intl.DateTimeFormat('en-US').format(date),
+      value: new Intl.DateTimeFormat('en-US',{
+      timeZone: 'UTC',
+    }).format(date),
     };
   }
   return item;
