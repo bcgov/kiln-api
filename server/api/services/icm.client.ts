@@ -97,6 +97,42 @@ export class ICMClient {
     }
   }
 
+  async compareICMData(
+    payload: { savedFormJson: any; savedFormXml: string },
+    originalServer?: string
+  ) {
+    try {
+      const url = process.env.COMM_API_COMPARE_ICM_ENDPOINT_URL;
+
+      if (!url) {
+        throw new Error(
+          'COMM_API_COMPARE_ICM_ENDPOINT_URL environment variable is required'
+        );
+      }
+
+      const timeout = process.env.COMM_API_TIMEOUT
+        ? parseInt(process.env.COMM_API_TIMEOUT, 10)
+        : 30000;
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      if (originalServer) {
+        headers['X-Original-Server'] = originalServer;
+      }
+
+      const response = await axios.post(url, payload, {
+        headers,
+        timeout,
+      });
+
+      return this.createJsonResponse(response);
+    } catch (error) {
+      return this.handleJsonError(error, 'saveICMData');
+    }
+  }
+
   async loadICMData(
     payload: any,
     originalServer?: string

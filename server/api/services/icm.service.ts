@@ -1,10 +1,15 @@
+import { FormDefinition, formDefinitionSchema } from '../../schema/form';
 import L from '../../common/logger';
 import { ICMClient } from './icm.client';
+import z from 'zod';
+import buildForICM from './buildForICM';
+import { FieldValue, GroupValue } from '../../schema/formElements';
 
 interface SaveICMDataPayload {
   attachmentId: string;
   OfficeName: string;
-  savedForm: any;
+  savedFormJson: string;
+  savedFormXml: string;
   token?: string;
   username?: string;
   originalServer?: string;
@@ -14,7 +19,7 @@ interface SaveICMDataRequest {
   attachmentId: string;
   OfficeName: string;
   username?: string;
-  savedForm: any;
+  savedForm: SavedData;
   originalServer?: string;
 }
 
@@ -145,8 +150,8 @@ interface SubmitButtonActionResult {
 
 interface SaveFormDataRequest {
   action: 'save' | 'save_and_close';
-  formState: Record<string, any>;
-  groupState?: Record<string, any[]>;
+  formState: Record<string, FieldValue>;
+  groupState?: Record<string, GroupValue>;
   formDefinition: any;
   metadata?: Record<string, any>;
   items: any[];
@@ -171,8 +176,8 @@ interface Item {
 }
 
 interface SavedData {
-  data: Record<string, any>;
-  form_definition: any;
+  data: Record<string, FieldValue | GroupValue>;
+  form_definition: FormDefinition;
   metadata: Record<string, any>;
 }
 
@@ -212,7 +217,7 @@ export class ICMService {
 
     return {
       success: false,
-      error: `${errorMessage}: ${errorDetail}`,
+      error: `${errorMessage}:\n${errorDetail}`,
       status: 500,
     };
   }
@@ -262,6 +267,47 @@ export class ICMService {
     }
   }
 
+  async compareICMData(
+    data: {
+      savedForm: SavedData;
+      originalServer?: string | undefined;
+    },
+    originalServer?: string
+  ) {
+    try {
+      const { savedForm } = data;
+
+      if (!savedForm) {
+        return {
+          success: false,
+          error: 'Missing required fields: savedForm',
+          status: 400,
+        };
+      }
+
+      const xml = await buildForICM(
+        savedForm.form_definition,
+        savedForm.data,
+        true
+      );
+
+      const comparePayload = {
+        savedFormJson: JSON.stringify(savedForm),
+        savedFormXml: xml,
+      };
+      const response = await this.icmClient.compareICMData(
+        comparePayload,
+        originalServer
+      );
+      return this.handleResponse(
+        response,
+        'Error saving form. Please try again.'
+      );
+    } catch (error) {
+      return this.handleError(error, 'Failed to save ICM data');
+    }
+  }
+
   async saveICMData(
     data: SaveICMDataRequest,
     token?: string,
@@ -278,10 +324,13 @@ export class ICMService {
         };
       }
 
+      const xml = await buildForICM(savedForm.form_definition, savedForm.data);
+
       const payload: SaveICMDataPayload = {
         attachmentId,
         OfficeName,
-        savedForm,
+        savedFormJson: JSON.stringify(savedForm),
+        savedFormXml: xml,
         originalServer,
       };
 
@@ -684,10 +733,10 @@ export class ICMService {
   }
 
   private createSavedData(ctx: {
-    formState: Record<string, any>;
-    groupState?: Record<string, any[]>;
+    formState: Record<string, FieldValue>;
+    groupState?: Record<string, GroupValue>;
     items: Item[];
-    formDefinition: any;
+    formDefinition: unknown;
     metadata?: Record<string, any>;
   }): SavedData {
     const {
@@ -697,7 +746,17 @@ export class ICMService {
       formDefinition,
       metadata = {},
     } = ctx;
-    const saveFieldData: Record<string, any> = {};
+
+    const result = formDefinitionSchema.safeParse(formDefinition);
+    if (!result.success) {
+      throw new Error(
+        'Invalid form definition: ' + z.prettifyError(result.error)
+      );
+    }
+
+    const formDef = result.data;
+
+    const saveFieldData: Record<string, FieldValue | GroupValue> = {};
 
     const processItems = (list: Item[], state: Record<string, any>) => {
       for (const item of list) {
@@ -810,23 +869,53 @@ export class ICMService {
       updated_date: new Date().toISOString(),
     };
 
-    const template: any = {
-      ...formDefinition,
-      id: formDefinition.id ?? '',
-      version: formDefinition.version ?? '',
-      status: formDefinition.status ?? '',
-      data: formDefinition.data ?? {},
-      created_by: formDefinition.created_by ?? '',
-      created_date: formDefinition.created_date ?? '',
-      updated_by: formDefinition.updated_by ?? '',
-      updated_date: formDefinition.updated_date ?? '',
-    };
-
     return {
       data: saveFieldData,
-      form_definition: template,
+      form_definition: formDef,
       metadata: updatedMetadata,
     };
+  }
+
+  async compareFormData(data: SaveFormDataRequest, originalServer?: string) {
+    try {
+      const { action, formState, groupState, formDefinition, metadata, items } =
+        data;
+
+      if (!action || !formState || !formDefinition || !items) {
+        return {
+          success: false,
+          error:
+            'Missing required fields: action, formState, formDefinition, or items',
+          status: 400,
+        };
+      }
+
+      const savedData = this.createSavedData({
+        formState,
+        groupState,
+        items,
+        formDefinition,
+        metadata,
+      });
+
+      const compareResult = await this.compareICMData(
+        {
+          savedForm: savedData,
+        },
+        originalServer
+      );
+
+      if (!compareResult.success) {
+        return compareResult;
+      }
+
+      return {
+        success: true,
+        data: compareResult,
+      };
+    } catch (error) {
+      return this.handleError(error, 'Failed to save form data');
+    }
   }
 
   async saveFormData(
@@ -867,7 +956,7 @@ export class ICMService {
           attachmentId: sessionParams.attachmentId,
           OfficeName: sessionParams.OfficeName,
           username: sessionParams.username,
-          savedForm: JSON.stringify(savedData),
+          savedForm: savedData,
         },
         token,
         originalServer
