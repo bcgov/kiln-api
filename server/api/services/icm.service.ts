@@ -1,5 +1,6 @@
 import L from '../../common/logger';
 import { ICMClient } from './icm.client';
+import * as process from 'node:process';
 
 interface SaveICMDataPayload {
   attachmentId: string;
@@ -160,13 +161,22 @@ interface SaveFormDataResult {
   status?: number;
 }
 
+type ConditionalFlag =
+  | boolean
+  | 'always'
+  | 'never'
+  | 'portal'
+  | 'icm'
+  | null
+  | undefined;
+
 interface Item {
   uuid: string;
   type: string;
   children?: Item[];
   attributes?: { [key: string]: any };
-  visible_web?: boolean;
-  visible_pdf?: boolean;
+  visible_web?: ConditionalFlag;
+  visible_pdf?: ConditionalFlag;
   save_on_submit?: boolean;
 }
 
@@ -670,16 +680,46 @@ export class ICMService {
     return v;
   }
 
-  private isFieldVisible(item: Item, mode: 'web' | 'pdf' = 'web'): boolean {
-    return mode === 'pdf'
-      ? item.visible_pdf !== false
-      : item.visible_web !== false;
+  private computeIsVisible(value: ConditionalFlag): boolean {
+    if (
+      value === null ||
+      value === undefined ||
+      value === false ||
+      value === 'never'
+    ) {
+      return false;
+    }
+
+    if (value === true || value === 'always') {
+      return true;
+    }
+
+    const isPortalIntegrated = process.env.PORTAL_INTEGRATED === 'true';
+
+    if (value === 'portal') {
+      return isPortalIntegrated;
+    }
+
+    if (value === 'icm') {
+      return !isPortalIntegrated;
+    }
+
+    return false;
   }
+
+  private isFieldVisible(item: Item, mode: 'web' | 'pdf' = 'web'): boolean {
+  return this.computeIsVisible(
+    mode === 'pdf'
+      ? item.visible_pdf
+      : item.visible_web
+  );
+}
 
   private shouldFieldBeIncludedForSaving(
     item: Item,
     mode: 'web' | 'pdf' = 'web'
   ): boolean {
+    console.log("shouldFieldBeIncludedForSaving >",item.uuid);
     return this.isFieldVisible(item, mode) || !!item.save_on_submit;
   }
 
