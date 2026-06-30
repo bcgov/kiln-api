@@ -718,8 +718,7 @@ export class ICMService {
   private shouldFieldBeIncludedForSaving(
     item: Item,
     mode: 'web' | 'pdf' = 'web'
-  ): boolean {
-    console.log("shouldFieldBeIncludedForSaving >",item.uuid);
+  ): boolean {    
     return this.isFieldVisible(item, mode) || !!item.save_on_submit;
   }
 
