@@ -5,6 +5,7 @@ on:
     branches:
       - main # Trigger on pushes to the main branch
       - test
+      - staging
       - dev
   workflow_dispatch:
 
@@ -15,7 +16,7 @@ jobs:
 
   deploy:
     runs-on: ubuntu-latest
-    environment:  ${{ github.ref == 'refs/heads/main' && 'prod-formfoundry-portal' || (github.ref == 'refs/heads/dev' && 'dev-formfoundry-portal') || github.ref == 'refs/heads/test' && 'test-formfoundry-portal' }}
+    environment:  ${{ github.ref == 'refs/heads/main' && 'prod-formfoundry-portal' || (github.ref == 'refs/heads/dev' && 'dev-formfoundry-portal') || (github.ref == 'refs/heads/staging' && 'staging-formfoundry-portal') || github.ref == 'refs/heads/test' && 'test-formfoundry-portal' }}
 
     steps:
       - name: Checkout repository
@@ -32,9 +33,14 @@ jobs:
             IMAGE_TAG="latest"
             elif [[ "$BRANCH" == "test" ]]; then
             ENV_NAMESPACE="test"
-             RELEASE_NAME="kiln-api-test"
+            RELEASE_NAME="kiln-api-test"
             VAULT_ROLE="${{ vars.LICENSE_PLATE }}-nonprod"
             IMAGE_TAG="test-latest"
+            elif [[ "$BRANCH" == "staging" ]]; then
+            ENV_NAMESPACE="tools"
+            RELEASE_NAME="kiln-api-staging"
+            VAULT_ROLE="${{ vars.LICENSE_PLATE }}-nonprod"
+            IMAGE_TAG="staging-latest"
             else
             ENV_NAMESPACE="dev"
             RELEASE_NAME="kiln-api-dev"

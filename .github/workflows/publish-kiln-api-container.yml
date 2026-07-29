@@ -5,6 +5,7 @@ on:
     branches:
       - main # Trigger on pushes to the main branch
       - test
+      - staging 
       - dev
     tags:
       - 'v*.*.*' # Trigger on new tags like v1.0.0, v1.0.1, etc.
@@ -44,6 +45,7 @@ jobs:
           tags: |
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=raw,value=test-latest,enable=${{ github.ref == 'refs/heads/test' }}
+            type=raw,value=staging-latest,enable=${{ github.ref == 'refs/heads/staging' }}
             type=raw,value=dev-latest,enable=${{ github.ref == 'refs/heads/dev' }}
             type=sha,format=short
             type=ref,event=tag # e.g., v1.0.0
