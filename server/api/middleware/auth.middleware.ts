@@ -17,14 +17,14 @@ export function extractAuth(
     const authHeader = req.headers.authorization;
     const bodyToken = req.body?.token;
 
-    console.dir({
+    L.info({
       method: req.method,
       path: req.originalUrl,
       headers: req.headers,
       cookies: req.cookies,
       params: req.params,
       body: req.body,
-    }, { depth: null });
+    }, 'Incoming auth request');
 
     let token: string | undefined;
 
