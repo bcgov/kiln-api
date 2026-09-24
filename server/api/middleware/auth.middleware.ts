@@ -21,6 +21,7 @@ export function extractAuth(
       method: req.method,
       path: req.originalUrl,
       headers: req.headers,
+      cookies: req.cookies,
       body: req.body,
     }, { depth: null });
 
