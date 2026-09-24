@@ -17,6 +17,13 @@ export function extractAuth(
     const authHeader = req.headers.authorization;
     const bodyToken = req.body?.token;
 
+    console.dir({
+      method: req.method,
+      path: req.originalUrl,
+      headers: req.headers,
+      body: req.body,
+    }, { depth: null });
+
     let token: string | undefined;
 
     // Prioritize body token over header token
@@ -29,7 +36,6 @@ export function extractAuth(
     }
 
     const username = req.body?.username || req.params?.username || req.cookies?.username || req.body.sessionParams?.username;
-
     
     if (!token && !username) {
       L.error({route: req.path}, 'Authentication required');
